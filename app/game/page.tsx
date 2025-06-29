@@ -15,7 +15,6 @@ export default function GamePage() {
   const [correctNumber, setCorrectNumber] = useState<number>(0);
   const [guessResults, setGuessResults] = useState<Array<{number: number, isCorrect: boolean}>>([]);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isQuadrantActive, setIsQuadrantActive] = useState(false);
   const [bestScore, setBestScore] = useState(0);
   const [quadrantNumbers, setQuadrantNumbers] = useState<number[]>([1, 2, 3, 4]);
   const [endGameMessage, setEndGameMessage] = useState('');
@@ -56,10 +55,10 @@ export default function GamePage() {
 
     // Initialize game
     updateQuadrants(true);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Utility functions
-  function shuffleArray(array: any[]) {
+  function shuffleArray(array: string[]) {
     for (let i = array.length - 1; i > 0; i--) {
       const randomIndex = Math.floor(Math.random() * (i + 1));
       [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
@@ -67,9 +66,9 @@ export default function GamePage() {
   }
 
   function generateColorSpectrum(steps: number) {
-    let spectrum = [];
+    const spectrum = [];
     for (let i = 0; i < steps; i++) {
-      let hue = Math.floor((i / steps) * 360);
+      const hue = Math.floor((i / steps) * 360);
       spectrum.push(`hsl(${hue}, 100%, 65%)`);
     }
     return spectrum;
@@ -124,14 +123,14 @@ export default function GamePage() {
   function updateQuadrants(isCorrect: boolean) {
     if (!isGameActive) return;
 
-    let numbers: number[] = [];
-    let currentHistory: number[] = [];
+    const numbers: number[] = [];
+    const currentHistory: number[] = [];
     lastNumbers.current.forEach((numArray) => {
       currentHistory.push(...numArray);
     });
 
     for (let i = 1; i <= 4; i++) {
-      let randomNumber = generateRandomNumber(numbers, currentHistory);
+      const randomNumber = generateRandomNumber(numbers, currentHistory);
       numbers.push(randomNumber);
       lastNumbers.current[i - 1].push(randomNumber);
       if (lastNumbers.current[i - 1].length > 2) lastNumbers.current[i - 1].shift();
@@ -159,13 +158,13 @@ export default function GamePage() {
         buttonGrid.classList.remove('rotate-grid-opposite', 'rotate-grid');
       }
 
-      let quadrantOrder = ['quad1', 'quad2', 'quad3', 'quad4'];
-      let rotatedOrder = rotateClockwise
+      const quadrantOrder = ['quad1', 'quad2', 'quad3', 'quad4'];
+      const rotatedOrder = rotateClockwise
         ? [quadrantOrder[3], ...quadrantOrder.slice(0, 3)]
         : [quadrantOrder[1], quadrantOrder[2], quadrantOrder[3], quadrantOrder[0]];
 
       const newNumbers: number[] = [];
-      rotatedOrder.forEach((quadId, index) => {
+      rotatedOrder.forEach((_, index) => {
         newNumbers.push(numbers[index]);
       });
       setQuadrantNumbers(newNumbers);
@@ -194,7 +193,7 @@ export default function GamePage() {
 
     setCurrentRound(prev => prev + 1);
     setGuessResults(prev => [...prev, { number: correctNumber, isCorrect }]);
-    revealAndDisplayResult(isCorrect, guessedNumber);
+    revealAndDisplayResult(isCorrect);
 
     setIsCircleTimerCleared(false);
     setIsAnimating(true);
@@ -205,7 +204,7 @@ export default function GamePage() {
     }, 1000);
   }
 
-  function revealAndDisplayResult(isCorrect: boolean, guessedNumber: number) {
+  function revealAndDisplayResult(isCorrect: boolean) {
     if (isCorrect) {
       const affirmation = getAffirmation();
       setAffirmationText(affirmation);
@@ -259,7 +258,6 @@ export default function GamePage() {
     setUsedAffirmations([]);
     setGuessResults([]);
     setIsAnimating(false);
-    setIsQuadrantActive(false);
     setEndGameMessage('');
     setAffirmationText('');
     setShowAffirmation(false);

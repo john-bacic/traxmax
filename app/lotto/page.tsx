@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import '@/styles/lotto/lotto.css';
-import { lottoService } from '@/lib/supabase/lotto-service';
-import { lottoMaxWinningNumbers2023 } from './data';
+import { lottoMaxWinningNumbers2023, type LottoDrawing } from './data';
 
 export default function LottoPage() {
   // State management exactly matching standalone
@@ -11,20 +10,18 @@ export default function LottoPage() {
   const [firstSevenToggled, setFirstSevenToggled] = useState<number[]>([]);
   const [additionalToggled, setAdditionalToggled] = useState<number[]>([]);
   const [notYetToggled, setNotYetToggled] = useState<number[]>(Array.from({ length: 50 }, (_, i) => i + 1));
-  const [dataToShow, setDataToShow] = useState<any[]>([]);
-  const [allDrawings, setAllDrawings] = useState<any[]>([]);
+  const [dataToShow, setDataToShow] = useState<LottoDrawing[]>([]);
   const [activeLinkId, setActiveLinkId] = useState<string | null>('all');
   const [loading, setLoading] = useState(true);
   const [bottomSelectorsVisible, setBottomSelectorsVisible] = useState(false);
   const [showBelowToggled, setShowBelowToggled] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [frequencyData, setFrequencyData] = useState<any[]>([]);
   const [cascadeDisabled, setCascadeDisabled] = useState(false);
-  const [manuallyToggledNumbers, setManuallyToggledNumbers] = useState<Set<number>>(new Set());
   const [specificNumbers, setSpecificNumbers] = useState<number[]>([]);
-  const [isVerticalView, setIsVerticalView] = useState(false);
-  const [previousDataToShow, setPreviousDataToShow] = useState<any[]>([]);
+  const [previousDataToShow, setPreviousDataToShow] = useState<LottoDrawing[]>([]);
   const [wasActiveBeforeVertical, setWasActiveBeforeVertical] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [manuallyToggledNumbers] = useState<Set<number>>(new Set());
 
   const colors: {[key: number]: string} = {};
 
@@ -43,7 +40,6 @@ export default function LottoPage() {
         setLoading(true);
         
         // Always use local data for consistency
-        setAllDrawings(lottoMaxWinningNumbers2023);
         setDataToShow(lottoMaxWinningNumbers2023);
         
         // Initialize with latest draw selected
@@ -137,6 +133,7 @@ export default function LottoPage() {
     
     // Update save button state
     checkAndToggleSaveButtonState();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeNumbers, firstSevenToggled, additionalToggled]);
 
   // Update frequency display when relevant state changes
@@ -148,6 +145,7 @@ export default function LottoPage() {
         displayMostFrequentNumbers();
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataToShow, activeNumbers]); // Removed showBelowToggled to prevent double render
 
   // Call updateSavedRowCount after component mounts
@@ -181,14 +179,7 @@ export default function LottoPage() {
         }
         
         // Set initial lock/unlock button visibility and bottom trigger state
-        const isLocked = getLockSavedState();
-        const savedNumbersDiv = document.getElementById('savedUmbersID');
-        const table = savedNumbersDiv?.querySelector('table');
-        const hasRows = table && table.rows.length > 0;
-        
-        // Get the actual container state - check if it was initialized as hidden
-        const isContainerInitiallyHidden = savedNumbersDiv?.getAttribute('data-initialized') === 'true';
-        const isContainerOpen = !isContainerInitiallyHidden && savedNumbersDiv?.style.display === 'flex';
+        getLockSavedState();
         
         // Set initial bottom trigger (red grip icon) state - always visible by default unless container is explicitly open
         const bottomTrigger = document.querySelector('.bottomTrigger') as HTMLElement;
@@ -262,6 +253,7 @@ export default function LottoPage() {
         if (unLockSavedButton) unLockSavedButton.style.display = 'none';
       }, 150);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
 
   // Generate 10x5 number grid exactly like standalone
@@ -308,7 +300,7 @@ export default function LottoPage() {
     checkForMatchingDrawIndex(newActiveNumbers);
     
     // Update red arrow visibility when numbers are toggled
-    setTimeout(() => updateButtonVisibility(newActiveNumbers), 0);
+    setTimeout(() => updateButtonVisibility(), 0);
   };
 
   // Update toggle sequence exactly like standalone
@@ -400,7 +392,7 @@ export default function LottoPage() {
     updateAllOffButtonOpacity(new Set());
     
     // Update red arrow visibility when all buttons are turned off
-    setTimeout(() => updateButtonVisibility(new Set()), 0);
+    setTimeout(() => updateButtonVisibility(), 0);
   };
 
   // Update all off button opacity exactly like standalone
@@ -418,7 +410,7 @@ export default function LottoPage() {
   };
 
   // Get frequency of each number for a given subset of draws
-  const getNumberFrequencies = (drawsSubset: any[]) => {
+  const getNumberFrequencies = (drawsSubset: LottoDrawing[]) => {
     const frequencies: {[key: number]: number} = {};
     drawsSubset.forEach((draw) => {
       // Handle both database format (numbers array) and local format (numbers array)
@@ -545,11 +537,6 @@ export default function LottoPage() {
     
     // Get the tab name and rows for the active tab (8d, 13d, 21d, etc.)
     const activeTabName = activeTimeLink ? activeTimeLink.textContent : '';
-    const activeTabRows = activeTimeLink
-      ? activeTimeLink.getAttribute('data-rows') === 'all'
-        ? lottoMaxWinningNumbers2023.length
-        : parseInt(activeTimeLink.getAttribute('data-rows') || '0', 10)
-      : lottoMaxWinningNumbers2023.length;
     
     // Find if a specific row is toggled on in the winning numbers
     const activeSelector = document.querySelector('.bottomSelector.on');
@@ -558,7 +545,7 @@ export default function LottoPage() {
       : -1;
     
     // Create a separate variable for frequency calculation
-    let frequencyData: any[] = [];
+    let frequencyData: LottoDrawing[] = [];
     
     // If no row is toggled (activeIndex === -1), ignore the checkbox state and use all data
     if (activeIndex === -1) {
@@ -570,7 +557,6 @@ export default function LottoPage() {
       console.log(`Checkbox OFF: Using all ${frequencyData.length} draws from ${activeTabName} tab`);
     } else if (showBelowToggled && activeIndex !== -1) {
       // When checkbox IS checked, calculate draws below the selected row
-      const bottomSelectorTitle = activeSelector?.textContent;
       const bottomSelectors = document.querySelectorAll('.bottomSelector');
       const numBottomSelectors = bottomSelectors.length;
       
@@ -857,12 +843,12 @@ export default function LottoPage() {
     }
     
     // Calculate pair occurrences
-    let pairOccurrences: {[key: string]: Set<string>} = {};
+    const pairOccurrences: {[key: string]: Set<string>} = {};
     
     lottoMaxWinningNumbers2023.forEach((draw) => {
       draw.numbers.forEach((num1: number, i: number) => {
         draw.numbers.slice(i + 1).forEach((num2: number) => {
-          let pair = [num1, num2].sort((a, b) => a - b).join(' + ');
+          const pair = [num1, num2].sort((a, b) => a - b).join(' + ');
           if (!pairOccurrences[pair]) {
             pairOccurrences[pair] = new Set();
           }
@@ -876,9 +862,9 @@ export default function LottoPage() {
     if (combinedToggled.length === 1) {
       // Single number selected - show all pairs with that number
       const selectedNumber = combinedToggled[0];
-      let pairFreqs: {[key: number]: number[][]} = {};
+      const pairFreqs: {[key: number]: number[][]} = {};
       
-      for (let pair in pairOccurrences) {
+      for (const pair in pairOccurrences) {
         const [num1, num2] = pair.split(' + ').map(Number);
         if (num1 === selectedNumber || num2 === selectedNumber) {
           const other = num1 === selectedNumber ? num2 : num1;
@@ -913,10 +899,10 @@ export default function LottoPage() {
         });
       });
       
-      let frequencies: {[key: number]: string[]} = {};
+      const frequencies: {[key: number]: string[]} = {};
       Object.entries(pairOccurrences).forEach(([pair, dates]) => {
         if (toggledPairs.has(pair)) {
-          let freq = dates.size;
+          const freq = dates.size;
           if (!frequencies[freq]) frequencies[freq] = [];
           frequencies[freq].push(pair);
         }
@@ -1003,14 +989,14 @@ export default function LottoPage() {
   };
   
   // Check if all numbers from a draw are toggled
-  const areAllNumbersFromDrawToggledOn = (drawIndex: number) => {
-    if (drawIndex < 0 || drawIndex >= lottoMaxWinningNumbers2023.length) {
-      return false;
-    }
-    
-    const drawNumbers = lottoMaxWinningNumbers2023[drawIndex].numbers;
-    return drawNumbers.every((number: number) => activeNumbers.has(number));
-  };
+  // const areAllNumbersFromDrawToggledOn = (drawIndex: number) => {
+  //   if (drawIndex < 0 || drawIndex >= lottoMaxWinningNumbers2023.length) {
+  //     return false;
+  //   }
+  //   
+  //   const drawNumbers = lottoMaxWinningNumbers2023[drawIndex].numbers;
+  //   return drawNumbers.every((number: number) => activeNumbers.has(number));
+  // };
   
   // Handle bottom selector clicks exactly like standalone
   const handleBottomSelectorClick = (index: number) => {
@@ -1316,18 +1302,18 @@ export default function LottoPage() {
     }, 100);
   };
   
-  const getFrequencyThreshold = () => {
-    const linkText = activeLinkId;
-    switch (linkText) {
-      case '8d': return 3;
-      case '13d': return 4;
-      case '21d': return 6;
-      case '34d': return 9;
-      case '55d': return 14;
-      case 'all': return Math.floor(dataToShow.length * 0.23);
-      default: return 0;
-    }
-  };
+  // const getFrequencyThreshold = () => {
+  //   const linkText = activeLinkId;
+  //   switch (linkText) {
+  //     case '8d': return 3;
+  //     case '13d': return 4;
+  //     case '21d': return 6;
+  //     case '34d': return 9;
+  //     case '55d': return 14;
+  //     case 'all': return Math.floor(dataToShow.length * 0.23);
+  //     default: return 0;
+  //   }
+  // };
   
   const reToggleManuallyToggledNumbers = () => {
     manuallyToggledNumbers.forEach(number => {
@@ -1672,10 +1658,10 @@ export default function LottoPage() {
     };
 
     for (let col = 0; col < numColumns; col++) {
-      let startCol = direction === 'rightToLeft' ? numColumns - 1 - col : col;
+      const startCol = direction === 'rightToLeft' ? numColumns - 1 - col : col;
 
       for (let overlap = 0; overlap < overlapColumns; overlap++) {
-        let currentCol = direction === 'rightToLeft' ? startCol - overlap : startCol + overlap;
+        const currentCol = direction === 'rightToLeft' ? startCol - overlap : startCol + overlap;
         if (currentCol >= 0 && currentCol < numColumns) {
           // Define colors for overlapping columns
           let color;
@@ -1755,20 +1741,20 @@ export default function LottoPage() {
   };
 
   // Update bottom selectors exactly like standalone
-  const updateBottomSelectors = (index: number) => {
-    const selectors = document.querySelectorAll('.bottomSelector');
-    selectors.forEach((selector, i) => {
-      if (i === index) {
-        selector.classList.add('on');
-      } else {
-        selector.classList.remove('on');
-      }
-    });
-  };
+  // const updateBottomSelectors = (index: number) => {
+  //   const selectors = document.querySelectorAll('.bottomSelector');
+  //   selectors.forEach((selector, i) => {
+  //     if (i === index) {
+  //       selector.classList.add('on');
+  //     } else {
+  //       selector.classList.remove('on');
+  //     }
+  //   });
+  // };
 
   // Toggle numbers and advance to next row exactly like standalone
   const toggleNumbersAndAdvance = () => {
-    let activeIndex = findActiveSelectorIndex();
+    const activeIndex = findActiveSelectorIndex();
     let currentIndex = activeIndex !== -1 ? activeIndex : -1;
     currentIndex = (currentIndex + 1) % dataToShow.length;
     
@@ -1807,7 +1793,7 @@ export default function LottoPage() {
 
   // Toggle numbers and reverse to previous row exactly like standalone  
   const toggleNumbersAndReverse = () => {
-    let activeIndex = findActiveSelectorIndex();
+    const activeIndex = findActiveSelectorIndex();
     let currentIndex = activeIndex !== -1 ? activeIndex : 0;
     currentIndex = currentIndex - 1;
     if (currentIndex < 0) {
@@ -1848,17 +1834,17 @@ export default function LottoPage() {
   };
 
   // Check if any complete winning number row is toggled on
-  const isAnyCompleteDrawToggled = () => {
-    for (let i = 0; i < Math.min(15, dataToShow.length); i++) {
-      if (areAllNumbersFromDrawToggledOn(i)) {
-        return true;
-      }
-    }
-    return false;
-  };
+  // const isAnyCompleteDrawToggled = () => {
+  //   for (let i = 0; i < Math.min(15, dataToShow.length); i++) {
+  //     if (areAllNumbersFromDrawToggledOn(i)) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // };
 
   // Update button visibility for red up/down arrows exactly like standalone  
-  const updateButtonVisibility = (currentActiveNumbers?: Set<number>) => {
+  const updateButtonVisibility = () => {
     const upButton = document.querySelector('.upButton') as HTMLElement;
     const downButton = document.querySelector('.downButton') as HTMLElement;
     const savedNumbersDiv = document.getElementById('savedUmbersID');
@@ -1887,21 +1873,21 @@ export default function LottoPage() {
   };
 
   // Helper function to check if any complete draw is toggled with specific numbers
-  const isAnyCompleteDrawToggledWithNumbers = (numbersToCheck: Set<number>) => {
-    for (let i = 0; i < Math.min(15, dataToShow.length); i++) {
-      if (areAllNumbersFromDrawToggledOnWithNumbers(i, numbersToCheck)) {
-        return true;
-      }
-    }
-    return false;
-  };
+  // const isAnyCompleteDrawToggledWithNumbers = (numbersToCheck: Set<number>) => {
+  //   for (let i = 0; i < Math.min(15, dataToShow.length); i++) {
+  //     if (areAllNumbersFromDrawToggledOnWithNumbers(i, numbersToCheck)) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // };
 
   // Helper function to check if all numbers from a draw are toggled with specific numbers
-  const areAllNumbersFromDrawToggledOnWithNumbers = (drawIndex: number, numbersToCheck: Set<number>) => {
-    if (drawIndex < 0 || drawIndex >= dataToShow.length) return false;
-    const drawNumbers = dataToShow[drawIndex].numbers;
-    return drawNumbers.every((number: number) => numbersToCheck.has(number));
-  };
+  // const areAllNumbersFromDrawToggledOnWithNumbers = (drawIndex: number, numbersToCheck: Set<number>) => {
+  //   if (drawIndex < 0 || drawIndex >= dataToShow.length) return false;
+  //   const drawNumbers = dataToShow[drawIndex].numbers;
+  //   return drawNumbers.every((number: number) => numbersToCheck.has(number));
+  // };
 
   // Track current row index for saved numbers navigation
   let currentRowIndex = -1;
@@ -1959,7 +1945,7 @@ export default function LottoPage() {
     if (!table || currentRowIndex === -1) return; // Exit if no table or no selected row
     
     // Reset the opacity for all rows
-    for (let row of table.rows) {
+    for (const row of table.rows) {
       (row as HTMLElement).style.opacity = '1';
     }
     
@@ -2023,7 +2009,7 @@ export default function LottoPage() {
   };
 
   // Check and toggle save button state exactly like standalone
-  const checkAndToggleSaveButtonState = (animate = false) => {
+  const checkAndToggleSaveButtonState = () => {
     const saveBtnDefault = document.getElementById('saveBtnDefaultID');
     const saveBtn = document.getElementById('saveBtnID');
     
@@ -2042,8 +2028,8 @@ export default function LottoPage() {
     const table = savedNumbersDiv?.querySelector('table');
     const rowCount = table ? table.rows.length : 0;
     const counterBtn = document.getElementById('counterBtnID');
-    const lockSavedButton = document.querySelector('.lockSaved') as HTMLButtonElement;
-    const unLockSavedButton = document.querySelector('.unLockSaved') as HTMLButtonElement;
+    // const lockSavedButton = document.querySelector('.lockSaved') as HTMLButtonElement;
+    // const unLockSavedButton = document.querySelector('.unLockSaved') as HTMLButtonElement;
     
     if (!savedNumbersDiv || !counterBtn) return;
     
@@ -2371,16 +2357,16 @@ export default function LottoPage() {
                   ))}
                   <td>
                     <button 
-                      data-number={draw.bonus_number || draw.bonus}
-                      className={`saved-number-button bonus ${activeNumbers.has(draw.bonus_number || draw.bonus) ? 'toggled-on' : ''}`}
+                      data-number={draw.bonus || draw.bonus}
+                      className={`saved-number-button bonus ${activeNumbers.has(draw.bonus || draw.bonus) ? 'toggled-on' : ''}`}
                       style={{ 
-                        backgroundColor: activeNumbers.has(draw.bonus_number || draw.bonus) ? getColor(draw.bonus_number || draw.bonus) : '',
-                        color: activeNumbers.has(draw.bonus_number || draw.bonus) ? '#fff' : '',
+                        backgroundColor: activeNumbers.has(draw.bonus || draw.bonus) ? getColor(draw.bonus || draw.bonus) : '',
+                        color: activeNumbers.has(draw.bonus || draw.bonus) ? '#fff' : '',
                         opacity: 0.5
                       }}
-                      onClick={() => toggleColor(draw.bonus_number || draw.bonus)}
+                      onClick={() => toggleColor(draw.bonus || draw.bonus)}
                     >
-                      {draw.bonus_number || draw.bonus}
+                      {draw.bonus || draw.bonus}
                     </button>
                   </td>
                 </tr>

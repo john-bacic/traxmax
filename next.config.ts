@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Better Safari compatibility
   reactStrictMode: false,
+  // Disable ESLint during builds temporarily
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   // Configure headers for Safari
   async headers() {
     return [

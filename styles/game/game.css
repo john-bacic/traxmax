@@ -1,0 +1,559 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend&display=swap');
+
+
+
+body {
+    font-family: 'Lexend', sans-serif;
+    font-weight: 700;
+    background-color: rgb(0, 0, 0);
+    margin: 0;
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* Internet Explorer/Edge */
+    user-select: none;         /* Non-prefixed version, currently supported by Chrome, Opera, and Edge */
+
+    overflow: hidden; /* Optionally hide scrollbars */
+    height: 100vh; /* Use the full height of the viewport */
+
+}
+
+#gameGrid{
+    /* background-color: rgb(30, 0, 55); */
+    margin: 0 ;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100%;
+    align-items: center;
+    justify-content: start;
+
+
+}
+
+
+#topfeedback{
+    /* background-color:aqua; */
+    display: flex;
+
+    width: 350px;
+    justify-content: space-between;
+    align-items: center;
+
+    /* background-color: rgb(1, 155, 182); */
+
+}
+
+#scoreboard {
+
+/* background-color: rgb(61, 61, 61); */
+    float: left;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    color: #7e68cf;
+    font-family: 'Lexend', sans-serif;
+    text-transform: lowercase;
+    font-weight: 700;
+    min-height: 20px;
+    width: 45%;
+    /* background-color: aqua; */
+
+}
+
+#best {
+    float: right;
+    font-size: 1.5rem;
+    color: #7e68cf;
+    font-family: 'Lexend', sans-serif;
+    text-transform: lowercase;
+    font-weight: 700;
+    min-height: 20px;
+    
+    /* padding-right: 20px; */
+    margin-right: 20px;
+
+    /* background-color: aqua; */
+}
+
+#history {
+
+    align-items: right;
+    display: flex;
+    
+    /* width: auto; */
+
+    /* background-color: #cf0; */
+    color: #7e68cf;
+    font-family: 'Lexend', sans-serif;
+    text-transform: lowercase;
+
+}
+
+
+
+#gameArea {
+    /* background-color: rgb(127, 1, 1); */
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: fit-content;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    /* margin-bottom: 2rem; */
+ 
+    /* padding: 0 0 25px; */
+}
+
+#quads{
+    /* background-color: green; */
+    position: relative;
+    display: flex;
+}
+
+#spacer{
+    min-height: 12vh;
+
+}
+
+#buttonGrid {
+    --box-size: 11rem;
+    display: grid;
+    grid-template-columns: repeat(2, var(--box-size)); /* Larger quadrants */
+    grid-gap: .625rem;
+    background-color: rgb(0, 0, 0);
+}
+
+
+
+.quadrant {
+    --box-size: 11rem;
+    font-family: 'Lexend', sans-serif;
+    background-color: #242424;
+    color: #cf0;
+    border-radius: 40px;
+    font-size: 5.25rem; /* font size */
+    font-weight: 700;
+    width: var(--box-size); /* Larger width */
+    height: var(--box-size); /* Larger height */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 
+        0px 5px 8px rgba(0, 0, 0, 0.5),
+        1px -1px 3px rgba(0, 0, 0, 0.25),
+        -1px 1px 3px rgba(0, 0, 0, 0.5);
+    border: none;
+    cursor: pointer;
+
+    /* transition: transform 0.1s ease-in-out; */
+    transition: transform 0.1s ease-in-out, text-shadow 0.05s ease; /* Smooth transition for both properties */
+}
+
+.quadrant.shrink {
+    transform: scale(0.95); /* Scale down to 90% of the original size */
+}
+
+
+.circle {
+    --circle-size: 7.5rem;
+    font-family: 'Lexend', sans-serif;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--circle-size); /* Size of the circle */
+    height: var(--circle-size);
+    border-radius: 50%;
+    color:#cf0;
+    background-color: #242424;
+    font-size: 3rem; /* font size */
+    font-weight: 700;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-shadow: 
+        0px 5px 8px rgba(0, 0, 0, 0.5),
+        1px -1px 3px rgba(0, 0, 0, 0.25),
+        -1px 1px 3px rgba(0, 0, 0, 0.5);
+    
+    /* border: .625rem solid black;  */
+    z-index: 1;
+
+    transition: transform 0.3s ease; /* Smooth transition for transform property */
+}
+
+.circle.scale-up {
+    transform: translate(-50%, -50%) scale(1.1); /* Combine translate and scale */
+    /* border: .25rem solid black;  */
+}
+
+
+.blackCircle {
+    --circle-size: 8.75rem;
+    font-family: 'Lexend', sans-serif;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--circle-size); /* Size of the circle */
+    height: var(--circle-size);
+    border-radius: 50%;
+    background-color: black;
+    color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* border: .625rem solid black;  */
+}
+
+
+#timeline {
+    display: flex;
+    justify-content: start;
+    width: 380px;
+    /* height: 30px;  */
+    min-height: 10px;
+
+    margin: 0;
+    margin-bottom: 15px;
+    /* background-color: black; */
+    padding: 1px;
+    overflow: hidden;
+    gap: 1px;
+  }
+  
+  .timeline-segment {
+    flex: 1;
+    background-color: transparent; /* Initially transparent to show the timeline's background */
+    transition: background-color 0.1s;
+  }
+  
+
+
+  @keyframes bounce {
+    0% {
+        transform: translateY(0) scale(0.1);
+        opacity: 0;                   /* Start from small and invisible */
+    }
+    20% {
+        transform: translateY(0px) scale(0.1);
+        opacity: .25;                   /* Minor stretch above the normal size */
+    }
+    40% {
+        transform: translateY(0px) scale(0.95);
+        opacity: 1;                   /* Minor compression below the normal size */
+    }
+    60% {
+        transform: translateY(0px) scale(1.05);
+        opacity: 1;                   /* Slight stretch again */
+    }
+    80% {
+        transform: translateY(0px) scale(0.98);
+        opacity: 1;                   /* Slightly compress */
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;                    /* Settle at normal scale */
+    }
+}
+
+#affirmation {
+    display: flex;
+    flex-direction: column;
+    height: 75%;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    line-height: 1;
+    font-weight: bold;
+    z-index: 5;
+    animation: bounce .5s ease-out; /* Increased duration and smoother easing */
+}
+
+.affirmation-text.show {
+    animation: bounce 0.5s ease-out; /* Subdued effect with smoother easing */
+}
+
+.bounce-animation {
+    animation: bounce 0.5s ease-out; /* Consistent with .affirmation-text.show */
+}
+
+
+
+#endGameMessage {
+    /* background-color: rgb(51, 61, 0); */
+    /* opacity: 1; */
+    /* transition: opacity .5s ease-in-out; */
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    /* gap: .5rem; */
+    /* margin-top: 1rem;
+    margin-bottom: 2rem; */
+    /* margin-bottom: 2rem; */
+    padding: 1rem 0 1rem 0 ;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    /* color: rgb(0, 242, 255); */
+    font-size: 2rem;
+    line-height: 1.1;
+    font-weight: bold;
+    
+}
+
+.visible {
+    opacity: 1;
+}
+
+#bottom{
+    display: flex;
+    /* background-color: rgb(153, 152, 152); */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    /* height: 100%; */
+    width: 360px;
+    /* margin: 1rem 0; */
+    /* padding: 0 0 2rem 0; */
+    margin-bottom: 2rem;
+
+}
+
+
+#controls{
+    /* background-color: rgb(128, 3, 3); */
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    /* height: 100%; */
+    /* padding: 0 0 1rem; */
+    justify-content:last baseline;
+    align-items: normal;
+    gap: .5rem;
+    
+    margin-bottom: -.2rem;
+}
+
+#reset, #pass {
+    background-color: #242424;
+    font-family: 'Lexend', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: lowercase;
+    color: #cf0;
+    border: none;
+    padding: 1.2rem 3rem;
+    width: 100%;
+    height: auto;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#rotate-svg, #rotate-svg-pass {
+    /* Removed transition and applied animation directly */
+    animation: rotate 0.6s ease-out; /* Changed to ease-out for fast to slow effect */
+}
+
+
+
+
+
+#numbers{
+
+    display: flex;
+    justify-content: start;
+    width: 380px;
+    min-height: 20px;
+
+    /* font-family: 'Trispace', sans-serif; */
+    /* font-size: .8125rem; */
+  font-size: 1px;
+    font-weight: 500;
+    /* color: #000000; */
+     /* color:aqua;  */
+    /* background-color: #7e68cf; */
+
+    margin-left: 30px;
+    margin-top: -5px;
+}
+
+
+/* #reset:hover, #pass:hover {
+    background-color: #1e1e1e; 
+} */
+
+.play-again {
+    background-color: #cf0;
+    font-family: 'Lexend', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 900;
+    text-transform: lowercase;
+    color: #000; /* For better visibility of the text */
+    border: none; /* Removes the default border */
+    padding: 1.2rem 3rem;
+    /* margin: 2rem 0 ; */
+    width: 100%;
+    height: auto;
+    border-radius: 40px; /* Rounded corners for a modern look */
+    cursor: pointer; /* Changes the cursor to a pointer on hover */
+    transition: background-color 0.3s; /* Smooth transition for hover effect */
+   
+}
+
+.play-again:hover {
+    background-color: rgb(137, 172, 0)
+}
+
+
+
+.closeBTN {
+    background-color: #242424;
+    border-radius: 8px;
+    padding:0;
+    position: fixed;
+    top: 7px;       /* Position from the top */
+    right: 14px;     /* Position from the right */
+    margin: 8px;    /* Margin around the button */
+
+    width: 2rem;
+    height: 2rem;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    
+    border-width: 2px;
+    border-style: solid;
+    border-color: #000; 
+    background-color: rgba(8, 8, 8, 0.0);
+}
+
+.flip {
+    display: inline-block;
+    transform: scaleX(-1); /* This mirrors the element horizontally */
+}
+
+@keyframes rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    80% {
+      transform: rotate(-100deg); /* Overshoot */
+    }
+    100% {
+      transform: rotate(-90deg); /* Settle back to -90deg */
+    }
+  }
+  
+  @keyframes rotate-opposite {
+    0% {
+      transform: rotate(0deg);
+    }
+    80% {
+      transform: rotate(100deg); /* Overshoot */
+    }
+    100% {
+      transform: rotate(90deg); /* Settle back to 90deg */
+    }
+  }
+  
+  .rotate-quad {
+    animation: rotate 0.6s ease-in-out;
+  }
+  
+  .rotate-quad-opposite {
+    animation: rotate-opposite 0.6s ease-in-out;
+  }
+  
+  .rotate-grid-opposite {
+    animation: rotate-opposite 0.6s ease-in-out;
+  }
+  
+  .rotate-grid {
+    animation: rotate 0.6s ease-in-out;
+  }
+  
+  @keyframes rotate-360 {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+
+
+  
+  #timeline-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  #timeline {
+    display: flex;
+    justify-content: start;
+    width: 380px;
+    margin: 0;
+    margin-bottom: 0px;
+    padding: 1px;
+    overflow: hidden;
+    gap: 1px;
+  }
+  
+  #timeline-numbers {
+    display: flex;
+    justify-content: start;
+    width: 380px;
+    min-height: 20px;
+    margin-top: 5px; /* Space between timeline and numbers */
+    gap: 2px; /* Adjusted gap for smaller spacers */
+    /* background-color: #7e68cf; */ /* Removed to allow individual number colors */
+  }
+  
+  .timeline-segment {
+    flex: 1;
+    background-color: transparent;
+    transition: background-color 0.1s;
+    position: relative;
+  }
+  
+  .timeline-number {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 15px; /* Adjust as needed */
+    font-size: 12px;
+    color: inherit; /* Allows JavaScript to set the color */
+    font-family: 'Lexend', sans-serif;
+    font-weight: 400;
+    
+  }
+  .number-spacer {
+    width: 1px;
+    height: 2px;
+    background-color: transparent;
+    /* border-inline: 1px solid red;  */
+    /* border-radius: 50%; */
+    margin: auto; /* Center the spacer within the timeline-number div */
+  }

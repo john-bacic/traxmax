@@ -1,0 +1,46 @@
+
+> traxmax-nextjs@0.1.0 dev
+> next dev -p 3001
+
+   ▲ Next.js 15.3.4
+   - Local:        http://localhost:3001
+   - Network:      http://127.51.68.120:3001
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1766ms
+ ✓ Compiled /middleware in 287ms (180 modules)
+ ○ Compiling /lotto ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (100kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled /lotto in 1368ms (868 modules)
+ GET /lotto 200 in 1911ms
+ ✓ Compiled in 508ms (868 modules)
+ ✓ Compiled in 272ms (868 modules)
+ ✓ Compiled in 369ms (868 modules)
+ ✓ Compiled in 181ms (868 modules)
+ ✓ Compiled in 201ms (868 modules)
+ GET /lotto 200 in 214ms
+ ✓ Compiled in 429ms (868 modules)
+ ✓ Compiled in 410ms (868 modules)
+ ✓ Compiled in 261ms (868 modules)
+ ✓ Compiled in 237ms (868 modules)
+ ✓ Compiled in 191ms (868 modules)
+ ✓ Compiled in 485ms (868 modules)
+ ✓ Compiled in 293ms (868 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /lotto 200 in 281ms
+ ✓ Compiled in 407ms (868 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /lotto 200 in 203ms
+ GET /lotto 200 in 34ms
+ ✓ Compiled in 854ms (882 modules)
+ GET /lotto 200 in 53ms
+ ✓ Compiled in 330ms (868 modules)
+ ✓ Compiled in 171ms (868 modules)
+ GET /lotto 200 in 150ms
+ ✓ Compiled in 388ms (868 modules)
+ ✓ Compiled in 284ms (868 modules)
+ ✓ Compiled in 188ms (868 modules)
+ ✓ Compiled in 317ms (868 modules)
+ ✓ Compiled in 356ms (868 modules)
+ ✓ Compiled in 404ms (868 modules)

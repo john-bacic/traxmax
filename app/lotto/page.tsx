@@ -22,8 +22,10 @@ export default function LottoPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [activeIndex, setActiveIndex] = useState(-1);
   const [manuallyToggledNumbers] = useState<Set<number>>(new Set());
+  const [isAnimating] = useState(false);
 
   const colors: {[key: number]: string} = {};
+  let svgFillColor: string;
 
   // Initialize colors for numbers 1-50 exactly like standalone
   const getColor = (number: number) => {
@@ -1143,80 +1145,136 @@ export default function LottoPage() {
     setTimeout(() => updateButtonVisibility(), 50);
   };
   
-  // Enhanced cascade button functionality exactly like standalone
-  const handleCascadeClick = () => {
-    if (firstSevenToggled.length >= 7 || cascadeDisabled) return;
-    
-    setCascadeDisabled(true);
-    
-    // Clear all numbers first
-    toggleOffAllButtons();
-    
-    // Re-toggle manually toggled numbers
-    reToggleManuallyToggledNumbers();
-    
-    // Show spinner animation
-    displaySpinnerAndChangeText();
-    
-    // Generate random color
-    const colorSpectrum = generateColorSpectrum(1);
-    
-    // Animate buttons
-    toggleRandomSevenButtons(colorSpectrum);
-  };
-  
-  const generateColorSpectrum = (steps: number) => {
-    const spectrum = [];
-    for (let i = 0; i < steps; i++) {
-      const hue = Math.floor(Math.random() * 360);
-      spectrum.push(`hsl(${hue}, 100%, 65%)`);
+  // --- CASCADE BUTTON LOGIC: MATCH STANDALONE ---
+
+
+  // Main cascade handler - exact copy from original
+  const handleCascadeClick = (event?: React.MouseEvent) => {
+    const cascadeButton = event?.currentTarget as HTMLButtonElement;
+    if (!cascadeButton?.disabled) {
+      toggleRandomSevenButtons();
     }
-    return spectrum;
   };
-  
-  const displaySpinnerAndChangeText = () => {
+
+  // Modified shuffleAndToggleSevenRandomButtons function - exact copy from original
+  const shuffleAndToggleSevenRandomButtons = () => {
+    console.log('shuffleAndToggleSevenRandomButtons called');
+    console.log('manuallyToggledNumbers size:', manuallyToggledNumbers.size);
+    console.log('specificNumbers length:', specificNumbers.length);
+    
+    const selectedNumbers = new Set([...manuallyToggledNumbers]); // Start with manually toggled numbers
+    let randomlyOnNumbers: number[] = []; // New array to store numbers that are randomly turned on
+
+    // Create a numbers array to pick from - making sure it's populated regardless of tab
+    let availableNumbers = [...specificNumbers];
+
+    // If specificNumbers is empty or too small due to frequency thresholds,
+    // use all numbers from 1-50 that aren't already selected
+    if (availableNumbers.length < 10) {
+      console.log('specificNumbers too small, using all 1-50');
+      // Fall back to all numbers if we don't have enough in specificNumbers
+      availableNumbers = Array.from({ length: 50 }, (_, i) => i + 1).filter(
+        (num) => !selectedNumbers.has(num)
+      );
+    }
+    
+    console.log('availableNumbers length:', availableNumbers.length);
+    console.log('Starting with selectedNumbers size:', selectedNumbers.size);
+
+    // Shuffle and pick numbers until we have 7 unique ones, excluding manually toggled numbers
+    while (selectedNumbers.size < 7) {
+      const shuffledSequence = shuffleArray(
+        availableNumbers.filter((n) => !selectedNumbers.has(n))
+      );
+
+      if (
+        shuffledSequence.length > 0 &&
+        !selectedNumbers.has(shuffledSequence[0])
+      ) {
+        selectedNumbers.add(shuffledSequence[0]);
+        randomlyOnNumbers.push(shuffledSequence[0]); // Add to randomlyOnNumbers array
+        console.log('Added number:', shuffledSequence[0], 'selectedNumbers size now:', selectedNumbers.size);
+      } else {
+        // Break the loop if there are not enough numbers to select from
+        console.log('Breaking loop - no more numbers available');
+        break;
+      }
+    }
+
+    console.log('Final selectedNumbers:', Array.from(selectedNumbers));
+    console.log('Starting toggle sequence...');
+
+    let count = 0;
+    Array.from(selectedNumbers).forEach((number, order) => {
+      setTimeout(() => {
+        const button = document.querySelector(
+          `#selectorContainerID button[data-number="${number}"]`
+        ) as HTMLButtonElement;
+        if (button) {
+          console.log('Toggling number:', number);
+          // Apply color toggle only for non-manually toggled numbers
+          if (!manuallyToggledNumbers.has(number)) {
+            toggleColor(number);
+          }
+          count++;
+          if (count === selectedNumbers.size) {
+            console.log('All numbers toggled, re-enabling button');
     const cascadeButton = document.querySelector('.cascadeButton') as HTMLButtonElement;
     if (cascadeButton) {
-      cascadeButton.innerHTML = `
-        <svg data-role="spinner" width="25" height="25" viewBox="0 0 25 25" fill="${firstSevenToggled.length >= 7 ? 'rgb(138, 138, 138)' : '#cf0'}" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0.15957 17.3803C0.159569 19.3614 1.60684 21.1139 3.43497 21.5711C3.81583 23.476 5.72014 24.9237 7.62444 24.8475C8.8432 24.8475 9.90961 24.3903 10.6713 23.6284C11.4331 22.8664 11.9663 21.7235 11.8901 20.5805V14.1801C11.8901 13.8753 11.8139 13.6467 11.5854 13.4182C11.3569 13.1896 11.1284 13.1134 10.8237 13.1134H4.42521C3.20646 13.1134 2.14005 13.5706 1.37833 14.3325C0.616603 15.0945 0.0833975 16.2374 0.15957 17.3803Z" />
-          <path d="M13.2611 4.27517V10.6756C13.2611 11.2851 13.7181 11.7423 14.3275 11.7423H20.7259C21.9447 11.7423 23.0111 11.2851 23.7728 10.5232C24.5346 9.76124 25.0678 8.61831 24.9916 7.47538C24.9916 5.49429 23.5443 3.7418 21.7162 3.28463C21.5638 2.52267 21.1068 1.76072 20.5736 1.22735C19.7357 0.389197 18.6693 -0.0679753 17.5267 0.0082202C16.308 0.0082202 15.2416 0.465393 14.4798 1.22735C13.7181 1.9893 13.1849 3.13223 13.2611 4.27517Z" />
-          <path d="M13.1851 14.2564V20.6569C13.1851 22.9427 15.1656 24.9238 17.5269 25C18.7457 25 19.8121 24.5428 20.5738 23.7809C21.1832 23.1713 21.564 22.4855 21.7164 21.7236C22.4781 21.5712 23.2398 21.114 23.773 20.5807C24.6109 19.7425 25.068 18.6758 24.9918 17.5328C24.9918 16.3137 24.5347 15.247 23.773 14.485C23.0113 13.7231 21.8687 13.1897 20.7261 13.2659H14.3277C14.023 13.2659 13.7945 13.3421 13.566 13.5707C13.3374 13.7993 13.1851 13.9517 13.1851 14.2564Z" />
-          <path d="M1.22697 4.42795C0.389079 5.2661 -0.0679545 6.33283 0.0082177 7.47576C0.0082178 9.91402 1.91252 11.8189 4.35003 11.8189H10.7485C11.3579 11.8189 11.8149 11.3617 11.8149 10.7522V4.35175C11.8149 3.13262 11.3579 2.06588 10.5962 1.30393C9.83443 0.541976 8.76802 0.084804 7.54926 0.084804C6.33051 0.0848039 5.2641 0.541977 4.50238 1.30393C3.893 1.9135 3.51214 2.59925 3.35979 3.36121C2.5219 3.4374 1.76018 3.89458 1.22697 4.42795Z" />
-        </svg>`;
+              cascadeButton.disabled = false; // Re-enable the button
+            }
+          }
+        } else {
+          console.warn('Button not found for number:', number);
+        }
+      }, order * 100);
+    });
+  };
+
+  
+  
+  const toggleRandomSevenButtons = () => {
+    console.log('toggleRandomSevenButtons called');
+    const cascadeButton = document.querySelector('.cascadeButton') as HTMLButtonElement;
+    if (!cascadeButton) {
+      console.error('Cascade button not found!');
+      return;
     }
     
-    // Show spacer if frequency results are visible
-    const frequencyResultsDiv = document.getElementById('frequencyResults');
-    const randSpacerDiv = document.querySelector('.forRandSpacer') as HTMLElement;
-    if (frequencyResultsDiv && randSpacerDiv && 
-        window.getComputedStyle(frequencyResultsDiv).display === 'block' && 
-        manuallyToggledNumbers.size === 0) {
-      randSpacerDiv.style.display = 'block';
-      setTimeout(() => {
-        randSpacerDiv.style.display = 'none';
-      }, 900);
-    }
-  };
-  
-  const toggleRandomSevenButtons = (colorSpectrum: string[]) => {
+    cascadeButton.disabled = true; // Disable the button to prevent re-clicking
+    console.log('Cascade button disabled, starting animation...');
+
+    toggleOffAllButtons();
+    reToggleManuallyToggledNumbers();
+    displaySpinnerAndChangeText();
+
+    const colorSpectrum = generateColorSpectrum(1);
+    console.log('Generated color spectrum:', colorSpectrum);
+    setRandomCascadeButtonColor(colorSpectrum);
+
     const totalNumbers = 50;
     const maxColorChanges = 2;
+
     let animatedButtons = 0;
     const numbers = Array.from({ length: totalNumbers }, (_, i) => i + 1);
     const shuffledNumbers = shuffleArray(numbers);
+    console.log('Starting animation for', totalNumbers - manuallyToggledNumbers.size, 'buttons');
     
     shuffledNumbers.forEach((number, index) => {
       setTimeout(() => {
         if (!manuallyToggledNumbers.has(number)) {
-          const button = document.querySelector(`#selectorContainerID button[data-number="${number}"]`) as HTMLButtonElement;
+          // Skip over manually toggled numbers
+          const button = document.querySelector(
+            `#selectorContainerID button[data-number="${number}"]`
+          ) as HTMLButtonElement;
           if (button) {
             let colorIndex = 0;
             const originalBackgroundColor = button.style.backgroundColor;
             const originalTextColor = button.style.color;
             
             const interval = setInterval(() => {
-              button.style.backgroundColor = colorSpectrum[colorIndex % colorSpectrum.length];
+              button.style.backgroundColor =
+                colorSpectrum[colorIndex % colorSpectrum.length];
               button.style.color = '#242424';
               button.style.textShadow = 'none';
               colorIndex++;
@@ -1227,11 +1285,17 @@ export default function LottoPage() {
                 button.style.color = originalTextColor;
                 animatedButtons++;
                 
-                if (animatedButtons === totalNumbers - manuallyToggledNumbers.size) {
+                if (
+                  animatedButtons ===
+                  totalNumbers - manuallyToggledNumbers.size
+                ) {
+                  console.log('Animation complete, calling shuffleAndToggleSevenRandomButtons');
                   shuffleAndToggleSevenRandomButtons();
                 }
               }
             }, 200);
+          } else {
+            console.warn('Button not found for number:', number);
           }
         }
       }, index * 10);
@@ -1252,54 +1316,64 @@ export default function LottoPage() {
     return arr;
   };
   
-  const shuffleAndToggleSevenRandomButtons = () => {
-    const numbersNeeded = 7 - firstSevenToggled.length;
-    if (numbersNeeded <= 0) return;
-    
-    // Use frequency-based selection when a frequency tab is active
-    let availableNumbers = [...specificNumbers];
-    
-    // If specificNumbers is empty or too small due to frequency thresholds,
-    // fall back to notYetToggled
-    if (availableNumbers.length === 0 || showBelowToggled) {
-      // Fall back to all numbers if we don't have enough in specificNumbers
-      availableNumbers = [...notYetToggled];
+  // Modified function to return just one random color - exact copy from original
+  const generateColorSpectrum = (steps: number) => {
+    let spectrum = [];
+    for (let i = 0; i < steps; i++) {
+      let hue = Math.floor(Math.random() * 360);
+      let complementaryHue = (hue + 0) % 360;
+      svgFillColor = `hsl(${complementaryHue}, 100%, 15%)`;
+      spectrum.push(`hsl(${hue}, 100%, 65%)`);
     }
-    
-    // Filter out manually toggled numbers
-    availableNumbers = availableNumbers.filter(num => !manuallyToggledNumbers.has(num));
-    
-    if (availableNumbers.length === 0) {
-      console.log('No available numbers to select');
-      resetCascadeButton();
-      setCascadeDisabled(false);
-      return;
+    return spectrum;
+  };
+
+  const setRandomCascadeButtonColor = (spectrum: string[]) => {
+    const randomColor = spectrum[Math.floor(Math.random() * spectrum.length)];
+    const cascadeButton = document.querySelector('.cascadeButton') as HTMLButtonElement;
+
+    if (cascadeButton) {
+      cascadeButton.style.backgroundColor = randomColor;
+      cascadeButton.innerHTML = `
+      <svg data-role="spinner" width="25" height="25" viewBox="0 0 25 25" fill="${svgFillColor}" xmlns="http://www.w3.org/2000/svg">
+       <path d="M0.15957 17.3803C0.159569 19.3614 1.60684 21.1139 3.43497 21.5711C3.81583 23.476 5.72014 24.9237 7.62444 24.8475C8.8432 24.8475 9.90961 24.3903 10.6713 23.6284C11.4331 22.8664 11.9663 21.7235 11.8901 20.5805V14.1801C11.8901 13.8753 11.8139 13.6467 11.5854 13.4182C11.3569 13.1896 11.1284 13.1134 10.8237 13.1134H4.42521C3.20646 13.1134 2.14005 13.5706 1.37833 14.3325C0.616603 15.0945 0.0833975 16.2374 0.15957 17.3803Z" />
+       <path d="M13.2611 4.27517V10.6756C13.2611 11.2851 13.7181 11.7423 14.3275 11.7423H20.7259C21.9447 11.7423 23.0111 11.2851 23.7728 10.5232C24.5346 9.76124 25.0678 8.61831 24.9916 7.47538C24.9916 5.49429 23.5443 3.7418 21.7162 3.28463C21.5638 2.52267 21.1068 1.76072 20.5736 1.22735C19.7357 0.389197 18.6693 -0.0679753 17.5267 0.0082202C16.308 0.0082202 15.2416 0.465393 14.4798 1.22735C13.7181 1.9893 13.1849 3.13223 13.2611 4.27517Z" />
+       <path d="M13.1851 14.2564V20.6569C13.1851 22.9427 15.1656 24.9238 17.5269 25C18.7457 25 19.8121 24.5428 20.5738 23.7809C21.1832 23.1713 21.564 22.4855 21.7164 21.7236C22.4781 21.5712 23.2398 21.114 23.773 20.5807C24.6109 19.7425 25.068 18.6758 24.9918 17.5328C24.9918 16.3137 24.5347 15.247 23.773 14.485C23.0113 13.7231 21.8687 13.1897 20.7261 13.2659H14.3277C14.023 13.2659 13.7945 13.3421 13.566 13.5707C13.3374 13.7993 13.1851 13.9517 13.1851 14.2564Z" />
+       <path d="M1.22697 4.42795C0.389079 5.2661 -0.0679545 6.33283 0.0082177 7.47576C0.0082178 9.91402 1.91252 11.8189 4.35003 11.8189H10.7485C11.3579 11.8189 11.8149 11.3617 11.8149 10.7522V4.35175C11.8149 3.13262 11.3579 2.06588 10.5962 1.30393C9.83443 0.541976 8.76802 0.084804 7.54926 0.084804C6.33051 0.0848039 5.2641 0.541977 4.50238 1.30393C3.893 1.9135 3.51214 2.59925 3.35979 3.36121C2.5219 3.4374 1.76018 3.89458 1.22697 4.42795Z" />
+      </svg>`;
     }
-    
-    const selectedNumbers: number[] = [];
-    
-    for (let i = 0; i < numbersNeeded && availableNumbers.length > 0; i++) {
-      const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-      const selectedNumber = availableNumbers[randomIndex];
-      selectedNumbers.push(selectedNumber);
-      
-      // Remove all instances of this number from availableNumbers
-      availableNumbers = availableNumbers.filter(num => num !== selectedNumber);
-    }
-    
-    // Toggle the selected numbers
-    selectedNumbers.forEach(number => {
-      const button = document.querySelector(`#selectorContainerID button[data-number="${number}"]`) as HTMLButtonElement;
-      if (button && !button.classList.contains('toggled-on')) {
-        toggleColor(number);
-      }
-    });
-    
-    // Reset cascade button after animation
+  };
+
+  const displaySpinnerAndChangeText = () => {
+    const cascadeButton = document.querySelector('.cascadeButton') as HTMLButtonElement;
+
+    // Use svgFillColor for the fill color of the SVG
+    cascadeButton.innerHTML = `
+    <svg data-role="spinner" width="25" height="25" viewBox="0 0 25 25" fill="${svgFillColor}" xmlns="http://www.w3.org/2000/svg">
+     <path d="M0.15957 17.3803C0.159569 19.3614 1.60684 21.1139 3.43497 21.5711C3.81583 23.476 5.72014 24.9237 7.62444 24.8475C8.8432 24.8475 9.90961 24.3903 10.6713 23.6284C11.4331 22.8664 11.9663 21.7235 11.8901 20.5805V14.1801C11.8901 13.8753 11.8139 13.6467 11.5854 13.4182C11.3569 13.1896 11.1284 13.1134 10.8237 13.1134H4.42521C3.20646 13.1134 2.14005 13.5706 1.37833 14.3325C0.616603 15.0945 0.0833975 16.2374 0.15957 17.3803Z" />
+     <path d="M13.2611 4.27517V10.6756C13.2611 11.2851 13.7181 11.7423 14.3275 11.7423H20.7259C21.9447 11.7423 23.0111 11.2851 23.7728 10.5232C24.5346 9.76124 25.0678 8.61831 24.9916 7.47538C24.9916 5.49429 23.5443 3.7418 21.7162 3.28463C21.5638 2.52267 21.1068 1.76072 20.5736 1.22735C19.7357 0.389197 18.6693 -0.0679753 17.5267 0.0082202C16.308 0.0082202 15.2416 0.465393 14.4798 1.22735C13.7181 1.9893 13.1849 3.13223 13.2611 4.27517Z" />
+     <path d="M13.1851 14.2564V20.6569C13.1851 22.9427 15.1656 24.9238 17.5269 25C18.7457 25 19.8121 24.5428 20.5738 23.7809C21.1832 23.1713 21.564 22.4855 21.7164 21.7236C22.4781 21.5712 23.2398 21.114 23.773 20.5807C24.6109 19.7425 25.068 18.6758 24.9918 17.5328C24.9918 16.3137 24.5347 15.247 23.773 14.485C23.0113 13.7231 21.8687 13.1897 20.7261 13.2659H14.3277C14.023 13.2659 13.7945 13.3421 13.566 13.5707C13.3374 13.7993 13.1851 13.9517 13.1851 14.2564Z" />
+     <path d="M1.22697 4.42795C0.389079 5.2661 -0.0679545 6.33283 0.0082177 7.47576C0.0082178 9.91402 1.91252 11.8189 4.35003 11.8189H10.7485C11.3579 11.8189 11.8149 11.3617 11.8149 10.7522V4.35175C11.8149 3.13262 11.3579 2.06588 10.5962 1.30393C9.83443 0.541976 8.76802 0.084804 7.54926 0.084804C6.33051 0.0848039 5.2641 0.541977 4.50238 1.30393C3.893 1.9135 3.51214 2.59925 3.35979 3.36121C2.5219 3.4374 1.76018 3.89458 1.22697 4.42795Z" />
+    </svg>`;
+
+    /////////////////////
+    // Check the display style of 'frequencyResults' div
+    const frequencyResultsDiv = document.getElementById('frequencyResults');
+    const displayStyleOfFrequencyResults = frequencyResultsDiv ? 
+      window.getComputedStyle(frequencyResultsDiv).display : 'none';
+
+    // Display the 'forRandSpacer' div for 1 second only if frequencyResults is set to block and there are no manually toggled numbers
+    const randSpacerDiv = document.querySelector('.forRandSpacer') as HTMLElement;
+    if (
+      randSpacerDiv &&
+      displayStyleOfFrequencyResults === 'block' &&
+      manuallyToggledNumbers.size === 0
+    ) {
+      randSpacerDiv.style.display = 'block'; // Show the div
     setTimeout(() => {
-      resetCascadeButton();
-      setCascadeDisabled(false);
-    }, 100);
+        randSpacerDiv.style.display = 'none'; // Hide the div after 1 second
+      }, 900);
+    }
   };
   
   // const getFrequencyThreshold = () => {
@@ -2146,9 +2220,18 @@ export default function LottoPage() {
 
       {/* Top Navigation */}
       <div className="topNav">
-        <button className="allOff" id="allOff" onClick={toggleOffAllButtons}>
+        <button
+          className="allOff"
+          id="allOff"
+          onClick={toggleOffAllButtons}
+          style={{
+            opacity: activeNumbers.size === 0 ? 0.5 : 1,
+            filter: activeNumbers.size === 0 ? 'grayscale(1)' : 'grayscale(0)',
+            transition: 'opacity 0.5s, filter 0.5s',
+          }}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" height="16" width="14" viewBox="0 0 448 512">
-            <path fill="#cf0" d="M432 256c0 17.7-14.3 32-32 32L48 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l352 0c17.7 0 32 14.3 32 32z"/>
+            <path fill={activeNumbers.size === 0 ? '#242424' : '#cf0'} d="M432 256c0 17.7-14.3 32-32 32L48 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l352 0c17.7 0 32 14.3 32 32z"/>
           </svg>
         </button>
         
@@ -2169,7 +2252,7 @@ export default function LottoPage() {
         <a href="/game" target="_self">
           <button className="spin">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M4.75 12.5H6.25C6.94063 12.5 7.5 11.9406 7.5 11.25V9.75C7.5 9.05937 6.94063 8.5 6.25 8.5H4.75C4.05937 8.5 3.5 9.05937 3.5 9.75V11.25C3.5 11.9406 4.05937 12.5 4.75 12.5ZM9.75 8.5C9.05937 8.5 8.5 9.05937 8.5 9.75V11.25C8.5 11.9406 9.05937 12.5 9.75 12.5H11.25C11.9406 12.5 12.5 11.9406 12.5 11.25V9.75C12.5 9.05937 11.9406 8.5 11.25 8.5H9.75ZM4.75 7.5H6.25C6.94063 7.5 7.5 6.94063 7.5 6.25L7.5 4.75C7.5 4.05937 6.94063 3.5 6.25 3.5H4.75C4.05937 3.5 3.5 4.05937 3.5 4.75V6.25C3.5 6.94063 4.05937 7.5 4.75 7.5ZM9.75 3.5C9.05937 3.5 8.5 4.05937 8.5 4.75V6.25C8.5 6.94063 9.05937 7.5 9.75 7.5L11.25 7.5C11.9406 7.5 12.5 6.94063 12.5 6.25V4.75C12.5 4.05937 11.9406 3.5 11.25 3.5H9.75Z" fill="#CCFF00"/>
+              <path d="M4.75 12.5H6.25C6.94063 12.5 7.5 11.9406 7.5 11.25V9.75C7.5 9.05937 6.94063 8.5 6.25 8.5H4.75C4.05937 8.5 3.5 9.05937 3.5 9.75V11.25C3.5 11.9406 4.05937 12.5 4.75 12.5ZM9.75 8.5C9.05937 8.5 8.5 9.05937 8.5 9.75V11.25C8.5 11.9406 9.05937 12.5 9.75 12.5H11.25C11.9406 12.5 12.5 11.9406 12.5 11.25V9.75C12.5 9.05937 11.9406 8.5 11.25 8.5H9.75ZM4.75 7.5H6.25C6.94063 7.5 7.5 6.94063 7.5 6.25L7.5 4.75C7.5 4.05937 6.94063 3.5 6.25 3.5H4.75C4.05937 3.5 3.5 4.05937 3.5 4.75V6.25C3.5 6.94063 4.05937 7.5 4.75 7.5ZM9.75 3.5C9.05937 3.5 8.5 4.05937 8.5 4.75V6.25C8.5 6.94063 9.05937 7.5 9.75 7.5L11.25 7.5C11.9406 7.5 12.5 6.94063 12.5 6.25V4.75C12.5 4.05937 11.9406 3.5 11.25 3.5H9.75Z" fill="#cf0" />
             </svg>
         </button>
         </a>

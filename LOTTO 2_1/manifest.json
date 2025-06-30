@@ -1,0 +1,21 @@
+{
+    "short_name": "Game",
+    "name": "Full Screen Web Application",
+    "icons": [
+      {
+        "src": "icon-192x192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "icon-512x512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ],
+    "start_url": "/",
+    "background_color": "#000000",
+    "display": "fullscreen",
+    "orientation": "portrait-primary"
+  }
+  

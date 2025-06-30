@@ -843,7 +843,7 @@ button.allOff {
   background-color: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  padding-top: 10px;
+  padding-top: 2px;
   padding-bottom: 0px;
   transition: box-shadow 0.3s ease;
   display: none;

@@ -172,7 +172,7 @@ button.allOff {
   align-items: stretch;
   margin: 0rem;
   gap: 0.35rem;
-  z-index: 100000;
+  z-index: 10;
 
 }
 
@@ -250,7 +250,7 @@ button.allOff {
   background-color: rgba(8, 8, 8, 0.92);
   backdrop-filter: blur(5px);
   border-top: 1px solid rgb(33, 33, 33);
-
+  z-index: 100000;
 }
 
 .bottomSelectorsContainer {
@@ -263,6 +263,7 @@ button.allOff {
   margin-top: 0.25rem;
   margin-bottom: 10px;
   display: none;
+
 }
 
 /* PINK */
@@ -759,7 +760,7 @@ button.allOff {
   align-items: center;
   margin-top: .25rem;
   margin-bottom: .6rem;
-  z-index: 20;
+  z-index: 100;
   /* background-color: #560000; */
 }
 
@@ -846,6 +847,7 @@ button.allOff {
   padding-bottom: 0px;
   transition: box-shadow 0.3s ease;
   display: none;
+  z-index: 100;
 }
 
 .sticky-wrapper.is-stuck {

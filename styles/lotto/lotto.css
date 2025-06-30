@@ -326,6 +326,7 @@ button.spin {
   background-color: rgba(8, 8, 8, 0.92);
   backdrop-filter: blur(5px);
   border-top: 1px solid rgb(33, 33, 33);
+
 }
 
 .bottomSelectorsContainer {
@@ -339,6 +340,7 @@ button.spin {
   margin-bottom: 10px;
   max-width: 600px;
   width: 100%;
+  z-index: 10000;
 }
 
 /* PINK */

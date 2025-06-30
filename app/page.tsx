@@ -27,7 +27,7 @@ export default function Home() {
           Play Guessing Game
         </Link>
         <Link 
-          href="/lotto" 
+          href="/lotto-enhanced" 
           style={{
             padding: '1rem 2rem',
             backgroundColor: '#7E68CF',

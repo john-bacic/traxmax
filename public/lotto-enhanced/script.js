@@ -920,16 +920,16 @@ function displayPairsInDifferentDraws() {
               const paddingStyle = n <= 9 ? '1px 7px' : '1px 5px'
               return `<span style='background:${getColor(
                 n
-              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:middle;'>${n}</span>`
+              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:top;'>${n}</span>`
             } else {
               // Match selected pairs: font-size 0.85em, color #009eba
-              return `<span style='color:#009eba;font-size:0.85em;vertical-align:middle;'>${n}</span>`
+              return `<span style='color:#009eba;font-size:0.85em;vertical-align:top;'>${n}</span>`
             }
           })
           .join(
-            ' <span style="color:#009eba;font-size:0.85em;vertical-align:middle;">•</span> '
+            ' <span style="color:#009eba;font-size:0.85em;vertical-align:top;">•</span> '
           )
-        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:middle;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
+        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:top;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
       })
       aroundHTML += '</table>'
     }

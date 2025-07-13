@@ -401,6 +401,58 @@ function populateWinningNumbersTable(draws) {
     return
   }
 
+  // Check if 'around' tab is active and a number is selected
+  let dimNonNeighbours = false
+  let selectedNumber = null
+  let neighbourPositions = new Set()
+
+  const pairTabAro = document.getElementById('pairTab_around')
+  if (pairTabAro && pairTabAro.classList.contains('pairTab-active')) {
+    const toggledNumbers = [...firstSevenToggled, ...additionalToggled]
+    if (toggledNumbers.length > 0) {
+      dimNonNeighbours = true
+      selectedNumber = toggledNumbers[0]
+
+      // Find all (row,col) positions of selectedNumber in the grid
+      const positions = []
+      draws.forEach((draw, rowIndex) => {
+        draw.numbers.forEach((num, colIndex) => {
+          if (num === selectedNumber) {
+            positions.push([rowIndex, colIndex])
+          }
+        })
+      })
+
+      // For each position of the selected number, mark all 8-way neighbours
+      const offsets = [
+        [-1, -1],
+        [-1, 0],
+        [-1, +1],
+        [0, -1],
+        [0, 0],
+        [0, +1],
+        [+1, -1],
+        [+1, 0],
+        [+1, +1],
+      ]
+
+      positions.forEach(([row, col]) => {
+        offsets.forEach(([dr, dc]) => {
+          const newRow = row + dr
+          const newCol = col + dc
+          if (
+            newRow >= 0 &&
+            newRow < draws.length &&
+            newCol >= 0 &&
+            newCol < 7
+          ) {
+            neighbourPositions.add(`${newRow},${newCol}`)
+          }
+        })
+      })
+    }
+  }
+
   draws.forEach((draw, index) => {
     const row = tableBody.insertRow()
 
@@ -411,12 +463,40 @@ function populateWinningNumbersTable(draws) {
         number,
         numIndex === draw.numbers.length
       ) // Mark bonus number
+
+      // Apply dimming if needed (only for main numbers, not bonus)
+      if (
+        dimNonNeighbours &&
+        numIndex < 7 &&
+        !neighbourPositions.has(`${index},${numIndex}`)
+      ) {
+        numberButton.style.opacity = '0.5'
+        numberButton.style.backgroundColor = '#242424'
+        numberButton.style.color = '#000000'
+        numberButton.style.textShadow = 'none'
+      }
+
+      // Apply darker grey to bonus numbers when 'around' tab is active
+      if (dimNonNeighbours && numIndex === draw.numbers.length) {
+        numberButton.style.opacity = '0.4'
+        numberButton.style.backgroundColor = '#1C1C1C'
+        numberButton.style.color = '#000000'
+        numberButton.style.textShadow = 'none'
+      }
+
       numberCell.appendChild(numberButton)
 
       // Apply toggled-on style if the number is active
       if (activeNumbers.has(number)) {
         numberButton.classList.add('toggled-on')
         numberButton.style.backgroundColor = getColor(number)
+        // Reset color to white if it was previously dimmed
+        if (
+          !dimNonNeighbours ||
+          neighbourPositions.has(`${index},${numIndex}`)
+        ) {
+          numberButton.style.color = '#fff'
+        }
       }
     })
 
@@ -962,6 +1042,8 @@ function displayPairsInDifferentDraws() {
         tabAro.style.color = '#009eba'
         tabNum.style.color = '#009eba'
         window._lastPairTab = 'selected'
+        // Update winning numbers table when leaving 'around' tab
+        populateWinningNumbersTable(dataToShow)
       } else if (tab === 'around') {
         tabAro.classList.add('pairTab-active')
         tabSel.classList.remove('pairTab-active')
@@ -976,6 +1058,8 @@ function displayPairsInDifferentDraws() {
         tabAro.style.color = '#009eba'
         tabNum.style.color = '#009eba'
         window._lastPairTab = 'around'
+        // Update winning numbers table when entering 'around' tab
+        populateWinningNumbersTable(dataToShow)
       } else if (tab === 'number') {
         tabNum.classList.add('pairTab-active')
         tabSel.classList.remove('pairTab-active')
@@ -990,6 +1074,8 @@ function displayPairsInDifferentDraws() {
         tabAro.style.color = '#009eba'
         tabNum.style.color = '#009eba'
         window._lastPairTab = 'number'
+        // Update winning numbers table when leaving 'around' tab
+        populateWinningNumbersTable(dataToShow)
       }
     }
     if (tabSel && tabAro && tabNum && contentSel && contentAro && contentNum) {
@@ -1066,16 +1152,16 @@ function displayPairsInDifferentDraws() {
               const paddingStyle = n <= 9 ? '1px 7px' : '1px 5px'
               return `<span style='background:${getColor(
                 n
-              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:middle;'>${n}</span>`
+              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:top;'>${n}</span>`
             } else {
               // Match selected pairs: font-size 0.85em, color #009eba
-              return `<span style='color:#009eba;font-size:0.85em;vertical-align:middle;'>${n}</span>`
+              return `<span style='color:#009eba;font-size:0.85em;vertical-align:top;'>${n}</span>`
             }
           })
           .join(
-            ' <span style="color:#009eba;font-size:0.85em;vertical-align:middle;">•</span> '
+            ' <span style="color:#009eba;font-size:0.85em;vertical-align:top;">•</span> '
           )
-        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:middle;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
+        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:top;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
       })
       aroundHTML += '</table>'
     }
@@ -1553,6 +1639,12 @@ function updateUI() {
   checkAndToggleSaveButtonState()
   updateAllOffButtonOpacity(activeNumbers)
   updateFocusOnDisplay()
+
+  // Update winning numbers table if 'around' tab is active
+  const pairTabAro = document.getElementById('pairTab_around')
+  if (pairTabAro && pairTabAro.classList.contains('pairTab-active')) {
+    populateWinningNumbersTable(dataToShow)
+  }
 }
 
 // Adding event listeners to bottomSelector elements

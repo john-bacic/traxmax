@@ -869,9 +869,11 @@ function displayPairsInDifferentDraws() {
       <div style="display: flex; border-bottom: 1px solid #222; margin-bottom: 8px;">
         <div id="pairTab_selected" class="pairTab pairTab-active" style="padding: 4px 12px; cursor: pointer; border-bottom: 2px solid #009eba;">selected pairs</div>
         <div id="pairTab_around" class="pairTab" style="padding: 4px 12px; cursor: pointer;">around</div>
+        <div id="pairTab_number" class="pairTab" style="padding: 4px 12px; cursor: pointer;"></div>
       </div>
       <div id="pairTabContent_selected"></div>
-      <div id="pairTabContent_around" style="display:none; padding: 8px 0 0 0; color: #009eba; font-size: 1.2em;"></div>
+      <div id="pairTabContent_around" style="display:none; padding: 0 0 0 0; margin-top:0; color: #009eba; font-size: 1.2em;"></div>
+      <div id="pairTabContent_number" style="display:none; padding: 8px 0 0 0; color: #009eba; font-size: 1.2em;"></div>
     `
     // Insert the table into the selected tab content
     const selectedContent = pairFrequencyDiv.querySelector(
@@ -907,7 +909,7 @@ function displayPairsInDifferentDraws() {
       const sortedFreqs = Object.keys(freqMap)
         .map(Number)
         .sort((a, b) => b - a)
-      aroundHTML += `<table style=\"color:#8deeff;font-size:1em;\">`
+      aroundHTML += `<table style=\"color:#8deeff;font-size:1em;margin-top:0;padding-top:0;\">`
       sortedFreqs.forEach((freq) => {
         const nums = freqMap[freq].sort((a, b) => a - b)
         const numsHTML = nums
@@ -927,7 +929,7 @@ function displayPairsInDifferentDraws() {
           .join(
             ' <span style="color:#009eba;font-size:0.85em;vertical-align:middle;">•</span> '
           )
-        aroundHTML += `<tr><td style='padding-right:1.5em; text-align:left;'>${freq}x:</td><td style='text-align:left;'>${numsHTML}</td></tr>`
+        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:middle;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
       })
       aroundHTML += '</table>'
     }
@@ -936,10 +938,12 @@ function displayPairsInDifferentDraws() {
     // Tab switching logic (restore this!)
     const tabSel = pairFrequencyDiv.querySelector('#pairTab_selected')
     const tabAro = pairFrequencyDiv.querySelector('#pairTab_around')
+    const tabNum = pairFrequencyDiv.querySelector('#pairTab_number')
     const contentSel = pairFrequencyDiv.querySelector(
       '#pairTabContent_selected'
     )
     const contentAro = pairFrequencyDiv.querySelector('#pairTabContent_around')
+    const contentNum = pairFrequencyDiv.querySelector('#pairTabContent_number')
 
     // Remember last active tab across refreshes
     let lastActiveTab = window._lastPairTab || 'selected'
@@ -947,28 +951,51 @@ function displayPairsInDifferentDraws() {
       if (tab === 'selected') {
         tabSel.classList.add('pairTab-active')
         tabAro.classList.remove('pairTab-active')
+        tabNum.classList.remove('pairTab-active')
         contentSel.style.display = ''
         contentAro.style.display = 'none'
+        contentNum.style.display = 'none'
         tabSel.style.borderBottom = '2px solid #009eba'
+        tabAro.style.borderBottom = 'none'
+        tabNum.style.borderBottom = 'none'
+        tabSel.style.color = '#009eba'
+        tabAro.style.color = '#009eba'
+        tabNum.style.color = '#009eba'
+        window._lastPairTab = 'selected'
+      } else if (tab === 'around') {
+        tabAro.classList.add('pairTab-active')
+        tabSel.classList.remove('pairTab-active')
+        tabNum.classList.remove('pairTab-active')
+        contentSel.style.display = 'none'
+        contentAro.style.display = ''
+        contentNum.style.display = 'none'
+        tabAro.style.borderBottom = '2px solid #009eba'
+        tabSel.style.borderBottom = 'none'
+        tabNum.style.borderBottom = 'none'
+        tabSel.style.color = '#009eba'
+        tabAro.style.color = '#009eba'
+        tabNum.style.color = '#009eba'
+        window._lastPairTab = 'around'
+      } else if (tab === 'number') {
+        tabNum.classList.add('pairTab-active')
+        tabSel.classList.remove('pairTab-active')
+        tabAro.classList.remove('pairTab-active')
+        contentSel.style.display = 'none'
+        contentAro.style.display = 'none'
+        contentNum.style.display = ''
+        tabNum.style.borderBottom = '2px solid #009eba'
+        tabSel.style.borderBottom = 'none'
         tabAro.style.borderBottom = 'none'
         tabSel.style.color = '#009eba'
         tabAro.style.color = '#009eba'
-        window._lastPairTab = 'selected'
-      } else {
-        tabAro.classList.add('pairTab-active')
-        tabSel.classList.remove('pairTab-active')
-        contentSel.style.display = 'none'
-        contentAro.style.display = ''
-        tabAro.style.borderBottom = '2px solid #009eba'
-        tabSel.style.borderBottom = 'none'
-        tabSel.style.color = '#009eba'
-        tabAro.style.color = '#009eba'
-        window._lastPairTab = 'around'
+        tabNum.style.color = '#009eba'
+        window._lastPairTab = 'number'
       }
     }
-    if (tabSel && tabAro && contentSel && contentAro) {
+    if (tabSel && tabAro && tabNum && contentSel && contentAro && contentNum) {
       tabSel.onclick = () => activateTab('selected')
       tabAro.onclick = () => activateTab('around')
+      tabNum.onclick = () => activateTab('number')
       activateTab(lastActiveTab)
     }
 
@@ -985,7 +1012,26 @@ function displayPairsInDifferentDraws() {
           num
         )};color:${textColor};font-size:0.85em;vertical-align:middle;\">${num}</span>`
       }
-      tabAro.innerHTML = `around${numHTML}`
+      tabAro.innerHTML = `around`
+    }
+    // --- Add number tab label ---
+    if (tabNum) {
+      const toggledNumbers = [...firstSevenToggled, ...additionalToggled]
+      let numHTML = ''
+      if (toggledNumbers.length > 0) {
+        const num = toggledNumbers[0]
+        const textColor =
+          num >= 1 && num <= 20 ? 'black !important' : '#242424 !important'
+        const paddingStyle = num <= 9 ? '1px 7px' : '1px 5px'
+        numHTML = `<span style=\"display:inline-block;padding:${paddingStyle};border-radius:4px;background:${getColor(
+          num
+        )};color:${textColor};font-size:0.85em;vertical-align:middle;pointer-events:none;\">${num}</span>`
+        tabNum.style.pointerEvents = 'none'
+        tabNum.innerHTML = numHTML
+      } else {
+        tabNum.style.pointerEvents = 'none'
+        tabNum.innerHTML = ''
+      }
     }
     if (toggledNumbers.length === 0) {
       aroundHTML = ''
@@ -1009,7 +1055,7 @@ function displayPairsInDifferentDraws() {
       const sortedFreqs = Object.keys(freqMap)
         .map(Number)
         .sort((a, b) => b - a)
-      aroundHTML += `<table style=\"color:#8deeff;font-size:1em;\">`
+      aroundHTML += `<table style=\"color:#8deeff;font-size:1em;margin-top:0;padding-top:0;\">`
       sortedFreqs.forEach((freq) => {
         const nums = freqMap[freq].sort((a, b) => a - b)
         const numsHTML = nums
@@ -1029,7 +1075,7 @@ function displayPairsInDifferentDraws() {
           .join(
             ' <span style="color:#009eba;font-size:0.85em;vertical-align:middle;">•</span> '
           )
-        aroundHTML += `<tr><td style='padding-right:1.5em; text-align:left;'>${freq}x:</td><td style='text-align:left;'>${numsHTML}</td></tr>`
+        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:middle;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
       })
       aroundHTML += '</table>'
     }

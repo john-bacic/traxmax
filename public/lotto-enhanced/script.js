@@ -915,17 +915,17 @@ function displayPairsInDifferentDraws() {
             if (toggledNumbers.includes(n)) {
               const textColor =
                 n >= 1 && n <= 20 ? 'black !important' : '#242424 !important'
-              const paddingStyle = n <= 9 ? '2px 8px' : '2px 4px'
+              const paddingStyle = n <= 9 ? '1px 7px' : '1px 5px'
               return `<span style='background:${getColor(
                 n
-              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.95em;vertical-align:middle;'>${n}</span>`
+              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:middle;'>${n}</span>`
             } else {
-              // Match selected pairs: font-size 0.95em, color #009eba
-              return `<span style='color:#009eba;font-size:0.95em;vertical-align:middle;'>${n}</span>`
+              // Match selected pairs: font-size 0.85em, color #009eba
+              return `<span style='color:#009eba;font-size:0.85em;vertical-align:middle;'>${n}</span>`
             }
           })
           .join(
-            ' <span style="color:#009eba;font-size:0.95em;vertical-align:middle;">•</span> '
+            ' <span style="color:#009eba;font-size:0.85em;vertical-align:middle;">•</span> '
           )
         aroundHTML += `<tr><td style='padding-right:1.5em; text-align:left;'>${freq}x:</td><td style='text-align:left;'>${numsHTML}</td></tr>`
       })
@@ -980,10 +980,10 @@ function displayPairsInDifferentDraws() {
         const num = toggledNumbers[0]
         const textColor =
           num >= 1 && num <= 20 ? 'black !important' : '#242424 !important'
-        const paddingStyle = num <= 9 ? '2px 8px' : '2px 4px'
-        numHTML = `<span style=\"display:inline-block;margin-left:4px;margin-right:2px;padding:${paddingStyle};border-radius:4px;background:${getColor(
+        const paddingStyle = num <= 9 ? '1px 7px' : '1px 5px'
+        numHTML = `<span style=\"display:inline-block;margin-left:2px;margin-right:2px;padding:${paddingStyle};border-radius:4px;background:${getColor(
           num
-        )};color:${textColor};font-size:0.95em;vertical-align:middle;\">${num}</span>`
+        )};color:${textColor};font-size:0.85em;vertical-align:middle;\">${num}</span>`
       }
       tabAro.innerHTML = `around${numHTML}`
     }
@@ -1017,17 +1017,17 @@ function displayPairsInDifferentDraws() {
             if (toggledNumbers.includes(n)) {
               const textColor =
                 n >= 1 && n <= 20 ? 'black !important' : '#242424 !important'
-              const paddingStyle = n <= 9 ? '2px 8px' : '2px 4px'
+              const paddingStyle = n <= 9 ? '1px 7px' : '1px 5px'
               return `<span style='background:${getColor(
                 n
-              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.95em;vertical-align:middle;'>${n}</span>`
+              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:middle;'>${n}</span>`
             } else {
-              // Match selected pairs: font-size 0.95em, color #009eba
-              return `<span style='color:#009eba;font-size:0.95em;vertical-align:middle;'>${n}</span>`
+              // Match selected pairs: font-size 0.85em, color #009eba
+              return `<span style='color:#009eba;font-size:0.85em;vertical-align:middle;'>${n}</span>`
             }
           })
           .join(
-            ' <span style="color:#009eba;font-size:0.95em;vertical-align:middle;">•</span> '
+            ' <span style="color:#009eba;font-size:0.85em;vertical-align:middle;">•</span> '
           )
         aroundHTML += `<tr><td style='padding-right:1.5em; text-align:left;'>${freq}x:</td><td style='text-align:left;'>${numsHTML}</td></tr>`
       })

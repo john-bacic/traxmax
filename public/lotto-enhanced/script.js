@@ -148,6 +148,10 @@ function triggerLoad() {
       const latestDrawIndex = 0 // The latest draw is at the top of the list
       toggleNumbersFromDraw(latestDrawIndex) // Toggle numbers from the latest draw
       updateDrawDetails(latestDrawIndex) // Update draw details for the latest draw
+      // Ensure button appearance is updated after initial load
+      updateButtonAppearance()
+      // Refresh the winning numbers table to apply all styling
+      populateWinningNumbersTable(dataToShow)
     }
   }, 100)
 }
@@ -264,12 +268,14 @@ function updateButtonAppearance() {
     } else {
       // Style for all other numbers
       button.classList.remove('toggled-on')
-      if (firstSevenToggled.length === 7) {
+      if (firstSevenToggled.length >= 7) {
         button.style.backgroundColor = '#1C1C1C' // Darker BG color for remaining numbers
         button.style.color = '#8A8A8A' // Grey text color for contrast
+        button.style.opacity = '1' // Maintain full opacity
       } else {
-        button.style.backgroundColor = 'rgb(36, 36, 36)' // Default color if less than 7 toggled
+        button.style.backgroundColor = '' // Use CSS default
         button.style.color = '' // Reset to default color
+        button.style.opacity = '1' // Maintain full opacity
       }
       button.style.textShadow = ''
     }
@@ -290,8 +296,8 @@ function updateButtonAppearance() {
       } else {
         button.classList.remove('toggled-on')
         button.style.color =
-          firstSevenToggled.length === 7 ? '#009eba' : '#8deeff' // Grey if 7 toggled, else default color
-        button.style.textShadow = firstSevenToggled.length === 7 ? 'none' : '' // text shadow
+          firstSevenToggled.length >= 7 ? '#009eba' : '#8deeff' // Grey if 7 or more toggled, else default color
+        button.style.textShadow = firstSevenToggled.length >= 7 ? 'none' : '' // text shadow
       }
     })
 }
@@ -464,11 +470,54 @@ function populateWinningNumbersTable(draws) {
         numIndex === draw.numbers.length
       ) // Mark bonus number
 
+      // Reset button styles to default first
+      // Check if this is a bonus button (either by index or by class)
+      const isBonus =
+        numIndex === draw.numbers.length ||
+        numberButton.classList.contains('bonus')
+
+      // Set opacity - bonus always 0.5, others depend on toggle state
+      if (isBonus) {
+        numberButton.style.opacity = '0.5'
+      } else {
+        // For regular numbers, keep full opacity
+        numberButton.style.opacity = '1'
+      }
+
+      // Set appropriate styling based on whether 7 or more are toggled
+      if (firstSevenToggled.length >= 7 && !activeNumbers.has(number)) {
+        // Apply darker background for all non-toggled numbers when 7+ are selected
+        numberButton.style.backgroundColor = '#1C1C1C'
+        numberButton.style.color = '#8A8A8A' // Grey text when 7 or more are toggled
+      } else if (!activeNumbers.has(number)) {
+        numberButton.style.backgroundColor = ''
+        numberButton.style.color = '' // Default color when less than 7
+      }
+      numberButton.style.textShadow = ''
+
+      // For bonus numbers, apply darker styling when 7 or more are toggled
+      if (numIndex === draw.numbers.length) {
+        // Bonus numbers ALWAYS have 0.5 opacity
+        numberButton.style.opacity = '0.5'
+
+        // Ensure the bonus class is set
+        if (!numberButton.classList.contains('bonus')) {
+          numberButton.classList.add('bonus')
+        }
+
+        if (firstSevenToggled.length >= 7) {
+          numberButton.style.backgroundColor = '#1C1C1C'
+          numberButton.style.color = '#8A8A8A'
+        }
+      }
+
       // Apply dimming if needed (only for main numbers, not bonus)
+      // But skip dimming if the number is toggled on
       if (
         dimNonNeighbours &&
         numIndex < 7 &&
-        !neighbourPositions.has(`${index},${numIndex}`)
+        !neighbourPositions.has(`${index},${numIndex}`) &&
+        !activeNumbers.has(number)
       ) {
         numberButton.style.opacity = '0.5'
         numberButton.style.backgroundColor = '#242424'
@@ -477,8 +526,14 @@ function populateWinningNumbersTable(draws) {
       }
 
       // Apply darker grey to bonus numbers when 'around' tab is active
-      if (dimNonNeighbours && numIndex === draw.numbers.length) {
-        numberButton.style.opacity = '0.4'
+      // But skip if the bonus number is toggled on
+      if (
+        dimNonNeighbours &&
+        numIndex === draw.numbers.length &&
+        !activeNumbers.has(number)
+      ) {
+        // Keep 0.5 opacity for bonus numbers (not 0.4)
+        numberButton.style.opacity = '0.5'
         numberButton.style.backgroundColor = '#1C1C1C'
         numberButton.style.color = '#000000'
         numberButton.style.textShadow = 'none'
@@ -490,12 +545,26 @@ function populateWinningNumbersTable(draws) {
       if (activeNumbers.has(number)) {
         numberButton.classList.add('toggled-on')
         numberButton.style.backgroundColor = getColor(number)
-        // Reset color to white if it was previously dimmed
-        if (
-          !dimNonNeighbours ||
-          neighbourPositions.has(`${index},${numIndex}`)
-        ) {
+
+        // Determine text color based on number range and toggled state
+        if (firstSevenToggled.includes(number)) {
+          numberButton.style.color = '#fff' // White for first seven toggled
+          numberButton.style.textShadow = '' // Default text shadow for first seven
+        } else if (additionalToggled.includes(number)) {
+          numberButton.style.color = 'black' // Black for additional toggled
+          numberButton.style.textShadow = 'none' // No text shadow for additional
+        } else {
+          // For any other active numbers (shouldn't happen in normal flow)
           numberButton.style.color = '#fff'
+          numberButton.style.textShadow = ''
+        }
+
+        // Override dimming styles for toggled numbers, but keep bonus opacity
+        if (
+          !numberButton.classList.contains('bonus') &&
+          numIndex !== draw.numbers.length
+        ) {
+          numberButton.style.opacity = '1'
         }
       }
     })
@@ -555,6 +624,12 @@ function toggleOffAllButtons() {
   document.querySelectorAll('button[data-number]').forEach((button) => {
     button.style.backgroundColor = ''
     button.style.color = ''
+    // Keep opacity 0.5 for bonus buttons, reset for others
+    if (button.classList.contains('bonus')) {
+      button.style.opacity = '0.5'
+    } else {
+      button.style.opacity = ''
+    }
     button.classList.remove('toggled-on')
   })
   // Reset the cascadeButton

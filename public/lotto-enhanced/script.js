@@ -521,7 +521,7 @@ function populateWinningNumbersTable(draws) {
       ) {
         numberButton.style.opacity = '0.5'
         numberButton.style.backgroundColor = '#242424'
-        numberButton.style.color = '#000000'
+        numberButton.style.color = '#444444'
         numberButton.style.textShadow = 'none'
       }
 
@@ -535,7 +535,7 @@ function populateWinningNumbersTable(draws) {
         // Keep 0.5 opacity for bonus numbers (not 0.4)
         numberButton.style.opacity = '0.5'
         numberButton.style.backgroundColor = '#1C1C1C'
-        numberButton.style.color = '#000000'
+        numberButton.style.color = '#333333'
         numberButton.style.textShadow = 'none'
       }
 

@@ -2844,11 +2844,17 @@ function toggleRandomSevenButtons() {
     const displayStyleOfFrequencyResults =
       window.getComputedStyle(frequencyResultsDiv).display
 
-    // Display the 'forRandSpacer' div only if frequencyResults is set to block and there are no manually toggled numbers
+    // Check the display style of 'pairFrequency' div (for x+y tab)
+    const pairFrequencyDiv = document.getElementById('pairFrequency')
+    const displayStyleOfPairFrequency =
+      window.getComputedStyle(pairFrequencyDiv).display
+
+    // Display the 'forRandSpacer' div only if frequencyResults OR pairFrequency is set to block and there are no manually toggled numbers
     const randSpacerDiv = document.querySelector('.forRandSpacer')
     if (
       randSpacerDiv &&
-      displayStyleOfFrequencyResults === 'block' &&
+      (displayStyleOfFrequencyResults === 'block' ||
+        displayStyleOfPairFrequency === 'block') &&
       manuallyToggledNumbers.size === 0
     ) {
       randSpacerDiv.style.display = 'block' // Show the div

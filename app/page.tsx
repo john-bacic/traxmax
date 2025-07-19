@@ -39,6 +39,19 @@ export default function Home() {
         >
           LOTTO Tracker
         </Link>
+        <Link 
+          href="https://traxmax-git-offlinejul19-john-bacics-projects.vercel.app/lotto-enhanced" 
+          style={{
+            padding: '1rem 2rem',
+            backgroundColor: '#E06666',
+            color: '#000000',
+            borderRadius: '8px',
+            fontSize: '1.2rem',
+            fontWeight: '500'
+          }}
+        >
+          LOTTO Offline (PWA)
+        </Link>
       </div>
     </div>
   );

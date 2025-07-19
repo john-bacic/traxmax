@@ -7,7 +7,6 @@ export default function LottoEnhanced() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(true);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -72,22 +71,7 @@ export default function LottoEnhanced() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    // Monitor online/offline status
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    // Check initial state
-    setIsOnline(navigator.onLine);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -121,6 +105,54 @@ export default function LottoEnhanced() {
         .then(res => res.text())
         .then(html => {
           container.innerHTML = html;
+          
+          // Create and inject offline indicator
+          const offlineIndicator = document.createElement('div');
+          offlineIndicator.id = 'offline-indicator';
+          offlineIndicator.style.cssText = `
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            background: rgba(255, 51, 51, 0.95);
+            color: white;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+            font-family: 'Lexend', sans-serif;
+          `;
+          offlineIndicator.innerHTML = '<span>📵</span><span>You\'re offline - Some features may be limited</span>';
+          
+          // Find bottomContainer and insert the offline indicator before it
+          const bottomContainer = container.querySelector('.bottomContainer');
+          if (bottomContainer && bottomContainer.parentNode) {
+            bottomContainer.parentNode.insertBefore(offlineIndicator, bottomContainer);
+          }
+          
+          // Update offline indicator visibility based on connection status
+          const updateOfflineIndicator = () => {
+            if (offlineIndicator) {
+              offlineIndicator.style.display = navigator.onLine ? 'none' : 'flex';
+              // Adjust bottomContainer position when offline indicator is shown
+              if (bottomContainer) {
+                (bottomContainer as HTMLElement).style.bottom = navigator.onLine ? '0' : '48px';
+              }
+            }
+          };
+          
+          // Set initial state
+          updateOfflineIndicator();
+          
+          // Listen for online/offline events
+          window.addEventListener('online', updateOfflineIndicator);
+          window.addEventListener('offline', updateOfflineIndicator);
           
           // Load the enhanced script that connects to Supabase
           const script = document.createElement('script');
@@ -398,30 +430,6 @@ export default function LottoEnhanced() {
           >
             Refresh
           </button>
-        </div>
-      )}
-      
-      {/* Offline indicator */}
-      {!isOnline && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(255, 51, 51, 0.9)',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '20px',
-          fontSize: '14px',
-          fontWeight: '500',
-          zIndex: 1001,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
-        }}>
-          <span>📵</span>
-          <span>You're offline - Some features may be limited</span>
         </div>
       )}
       

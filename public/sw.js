@@ -1,5 +1,5 @@
 // Service Worker version - increment this to force cache update
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 const CACHE_NAME = `lotto-enhanced-${CACHE_VERSION}`
 
 // Files to cache for offline use
@@ -29,6 +29,13 @@ const urlsToCache = [
   '/sounds/guess_sound.mp3',
   '/sounds/guess_sound.wav',
   '/sounds/xguess_sound.wav',
+  // Local fonts
+  '/fonts/Lexend-VariableFont_wght.ttf',
+  '/fonts/static/Lexend-Regular.ttf',
+  '/fonts/static/Lexend-Bold.ttf',
+  '/fonts/static/Lexend-SemiBold.ttf',
+  '/fonts/static/Lexend-Medium.ttf',
+  '/fonts/static/Lexend-Light.ttf',
   // Google Fonts - cache the specific fonts being used
   'https://fonts.googleapis.com/css?family=Lexend',
   'https://fonts.googleapis.com/css2?family=Lexend:wght@100;200;300;400;500;600;700;800;900&family=Trispace:wght@500&display=swap',

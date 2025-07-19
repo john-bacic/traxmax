@@ -111,7 +111,7 @@ export default function LottoEnhanced() {
           offlineIndicator.id = 'offline-indicator';
           offlineIndicator.style.cssText = `
             position: fixed;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
             width: 100%;
@@ -120,29 +120,48 @@ export default function LottoEnhanced() {
             padding: 12px 20px;
             font-size: 14px;
             font-weight: 500;
-            z-index: 99999;
+            z-index: 100001;
             display: none;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            border-top: 2px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
             font-family: 'Lexend', sans-serif;
+            margin: 0;
+            height: 48px;
+            box-sizing: border-box;
           `;
           offlineIndicator.innerHTML = '<span>📵</span><span>You\'re offline - Some features may be limited</span>';
           
-          // Find bottomContainer and insert the offline indicator before it
-          const bottomContainer = container.querySelector('.bottomContainer');
-          if (bottomContainer && bottomContainer.parentNode) {
-            bottomContainer.parentNode.insertBefore(offlineIndicator, bottomContainer);
+          // Insert at the very beginning of the container to push everything down
+          if (container.firstChild) {
+            container.insertBefore(offlineIndicator, container.firstChild);
+          } else {
+            container.appendChild(offlineIndicator);
           }
           
           // Update offline indicator visibility based on connection status
           const updateOfflineIndicator = () => {
             if (offlineIndicator) {
-              offlineIndicator.style.display = navigator.onLine ? 'none' : 'flex';
-              // Adjust bottomContainer position when offline indicator is shown
-              if (bottomContainer) {
-                (bottomContainer as HTMLElement).style.bottom = navigator.onLine ? '0' : '48px';
+              const isVisible = !navigator.onLine;
+              offlineIndicator.style.display = isVisible ? 'flex' : 'none';
+              
+              // Adjust container padding to push content down
+              container.style.paddingTop = isVisible ? '48px' : '0';
+              container.style.transition = 'padding-top 0.3s ease';
+              
+              // Adjust sticky header position
+              const topNav = container.querySelector('.topNav') as HTMLElement;
+              if (topNav) {
+                topNav.style.top = isVisible ? '48px' : '0';
+                // Don't override the transform transition
+              }
+              
+              // Also adjust any other fixed/sticky elements
+              const easterEgg = container.querySelector('.easter-egg') as HTMLElement;
+              if (easterEgg) {
+                easterEgg.style.top = isVisible ? '48px' : '0';
+                easterEgg.style.transition = 'top 0.3s ease';
               }
             }
           };
@@ -169,16 +188,16 @@ export default function LottoEnhanced() {
               window.requestAnimationFrame(() => {
                 const scrollTop = container.scrollTop;
                 const topNav = container.querySelector('.topNav');
-                const hamburgerMenu = container.querySelector('#hamburger-menu');
+                const easterEgg = container.querySelector('.easter-egg');
                 
                 if (scrollTop > lastScrollTop && scrollTop > 100) {
                   // Scrolling down - hide
                   if (topNav) topNav.classList.add('hidden');
-                  if (hamburgerMenu) hamburgerMenu.classList.add('hidden');
+                  if (easterEgg) easterEgg.classList.add('hidden');
                 } else {
                   // Scrolling up - show
                   if (topNav) topNav.classList.remove('hidden');
-                  if (hamburgerMenu) hamburgerMenu.classList.remove('hidden');
+                  if (easterEgg) easterEgg.classList.remove('hidden');
                 }
                 
                 lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
@@ -230,12 +249,7 @@ export default function LottoEnhanced() {
           scrollbar-width: none;  /* Firefox */
         }
         
-        #hamburger-menu {
-          position: absolute;
-          top: 10px;
-          right: 20px;
-          z-index: 1000;
-        }
+
       `}</style>
 
       {/* Dropdown menu */}

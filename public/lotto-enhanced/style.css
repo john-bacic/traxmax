@@ -32,17 +32,27 @@ body {
   width: 100%;
   padding: 0.5rem .75rem;
   z-index: 100;
-  backdrop-filter: blur(3px);
-  transition: transform 0.3s ease-in-out;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.3s ease-in-out, top 0.3s ease;
+  -webkit-transition: transform 0.3s ease-in-out, top 0.3s ease;
+  -moz-transition: transform 0.3s ease-in-out, top 0.3s ease;
+  will-change: transform, top;
 }
 
 .topNav.hidden {
-  transform: translateY(-100%);
+  transform: translate3d(0, -100%, 0);
+  -webkit-transform: translate3d(0, -100%, 0);
+  -moz-transform: translate3d(0, -100%, 0);
 }
 
-.topNav.hidden button.noBorder {
+.topNav.hidden button.noBorder,
+.topNav.hidden .allOff,
+.topNav.hidden .hamburger-menu {
   transform: translateY(-100px);
+  transition: transform 0.3s ease-in-out;
 }
+
+
 
 .downButton,
 .upButton {
@@ -146,6 +156,7 @@ button.noBorder {
   border-style: solid;
   border-color: #00000000;
   transition: transform 0.3s ease-in-out;
+  transform: translateY(0);
 }
 
 button.allOff {
@@ -156,10 +167,11 @@ button.allOff {
   border-style: solid;
   border-color: #242424;
   background-color: rgba(8, 8, 8, 0.0);
-  transition: opacity 0.5s ease;
+  transition: opacity 0.5s ease, transform 0.3s ease-in-out;
   /* opacity: .25; */
   filter: grayscale(1);
   margin-left: 2px;
+  transform: translateY(0);
 }
 
 
@@ -478,7 +490,12 @@ button.allOff {
   text-align: center;
   z-index: 0;
   transform: translate3d(0, -40px, 0);
-    /* transform: translate3d(0, 60px, 0); */
+  /* transform: translate3d(0, 60px, 0); */
+  transition: transform 0.3s ease-in-out;
+}
+
+.easter-egg.hidden {
+  transform: translate3d(0, -140px, 0);
 }
 
 .sumText {
@@ -884,6 +901,8 @@ body.lotto-active #linkList {
   justify-content: center;
   gap: 0;
   cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+  transform: translateY(0);
 }
 
 .hamburger-menu:hover {
@@ -896,7 +915,7 @@ body.lotto-active #linkList {
   justify-content: center;
   align-items: center;
   flex: 1;
-  margin-left: -50px;
+  margin-left: 0px;
   /* z-index: 10000; */
 }
 

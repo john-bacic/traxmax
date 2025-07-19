@@ -12,7 +12,7 @@ export default function Home() {
       color: '#ffffff'
     }}>
       <h1 style={{ fontSize: '3rem', marginBottom: '3rem' }}>TraxMax</h1>
-      <div style={{ display: 'flex', gap: '2rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         <Link 
           href="/game" 
           style={{

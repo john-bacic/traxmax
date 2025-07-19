@@ -115,20 +115,19 @@ export default function LottoEnhanced() {
             left: 0;
             right: 0;
             width: 100%;
-            background: rgba(255, 51, 51, 0.95);
-            color: white;
-            padding: 12px 20px;
-            font-size: 14px;
+            background: #E06666;
+            color: black;
+            padding: 10px 10px;
+            font-size: 12px;
             font-weight: 500;
             z-index: 100001;
             display: none;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
             font-family: 'Lexend', sans-serif;
             margin: 0;
-            height: 48px;
+            height: 28px;
             box-sizing: border-box;
           `;
           offlineIndicator.innerHTML = '<span>📵</span><span>You\'re offline - Some features may be limited</span>';
@@ -144,23 +143,24 @@ export default function LottoEnhanced() {
           const updateOfflineIndicator = () => {
             if (offlineIndicator) {
               const isVisible = !navigator.onLine;
+              // const isVisible = true; // Always show
               offlineIndicator.style.display = isVisible ? 'flex' : 'none';
               
               // Adjust container padding to push content down
-              container.style.paddingTop = isVisible ? '48px' : '0';
+              container.style.paddingTop = isVisible ? '28px' : '0';
               container.style.transition = 'padding-top 0.3s ease';
               
               // Adjust sticky header position
               const topNav = container.querySelector('.topNav') as HTMLElement;
               if (topNav) {
-                topNav.style.top = isVisible ? '48px' : '0';
+                topNav.style.top = isVisible ? '28px' : '0';
                 // Don't override the transform transition
               }
               
               // Also adjust any other fixed/sticky elements
               const easterEgg = container.querySelector('.easter-egg') as HTMLElement;
               if (easterEgg) {
-                easterEgg.style.top = isVisible ? '48px' : '0';
+                easterEgg.style.top = isVisible ? '28px' : '0';
                 easterEgg.style.transition = 'top 0.3s ease';
               }
             }

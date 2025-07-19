@@ -4,6 +4,10 @@
 const lottoMaxWinningNumbers2023 = [
 
 
+  { date: 'July 8, 2025', numbers: [7, 8, 18, 27, 38, 48, 50], bonus: 5, jackpot: 65000000 },
+  { date: 'July 4, 2025', numbers: [6, 14, 23, 31, 34, 35, 42], bonus: 1, jackpot: 60000000 },
+  { date: 'July 1, 2025', numbers: [2, 5, 14, 26, 33, 35, 36], bonus: 10, jackpot: 55000000 },
+
   { date: 'June 27, 2025', numbers: [8, 12, 15, 27, 31, 42, 47], bonus: 41, jackpot: 50000000 },
   { date: 'June 24, 2025', numbers: [1, 2, 7, 32, 45, 46, 48], bonus: 24, jackpot: 40000000 },
   { date: 'June 20, 2025', numbers: [14, 17, 20, 24, 42, 47, 50], bonus: 25, jackpot: 30000000 },

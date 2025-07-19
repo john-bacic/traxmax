@@ -401,6 +401,58 @@ function populateWinningNumbersTable(draws) {
     return
   }
 
+  // Check if 'around' tab is active and a number is selected
+  let dimNonNeighbours = false
+  let selectedNumber = null
+  let neighbourPositions = new Set()
+
+  const pairTabAro = document.getElementById('pairTab_around')
+  if (pairTabAro && pairTabAro.classList.contains('pairTab-active')) {
+    const toggledNumbers = [...firstSevenToggled, ...additionalToggled]
+    if (toggledNumbers.length > 0) {
+      dimNonNeighbours = true
+      selectedNumber = toggledNumbers[0]
+
+      // Find all (row,col) positions of selectedNumber in the grid
+      const positions = []
+      draws.forEach((draw, rowIndex) => {
+        draw.numbers.forEach((num, colIndex) => {
+          if (num === selectedNumber) {
+            positions.push([rowIndex, colIndex])
+          }
+        })
+      })
+
+      // For each position of the selected number, mark all 8-way neighbours
+      const offsets = [
+        [-1, -1],
+        [-1, 0],
+        [-1, +1],
+        [0, -1],
+        [0, 0],
+        [0, +1],
+        [+1, -1],
+        [+1, 0],
+        [+1, +1],
+      ]
+
+      positions.forEach(([row, col]) => {
+        offsets.forEach(([dr, dc]) => {
+          const newRow = row + dr
+          const newCol = col + dc
+          if (
+            newRow >= 0 &&
+            newRow < draws.length &&
+            newCol >= 0 &&
+            newCol < 7
+          ) {
+            neighbourPositions.add(`${newRow},${newCol}`)
+          }
+        })
+      })
+    }
+  }
+
   draws.forEach((draw, index) => {
     const row = tableBody.insertRow()
 
@@ -411,12 +463,40 @@ function populateWinningNumbersTable(draws) {
         number,
         numIndex === draw.numbers.length
       ) // Mark bonus number
+
+      // Apply dimming if needed (only for main numbers, not bonus)
+      if (
+        dimNonNeighbours &&
+        numIndex < 7 &&
+        !neighbourPositions.has(`${index},${numIndex}`)
+      ) {
+        numberButton.style.opacity = '0.5'
+        numberButton.style.backgroundColor = '#242424'
+        numberButton.style.color = '#000000'
+        numberButton.style.textShadow = 'none'
+      }
+
+      // Apply darker grey to bonus numbers when 'around' tab is active
+      if (dimNonNeighbours && numIndex === draw.numbers.length) {
+        numberButton.style.opacity = '0.4'
+        numberButton.style.backgroundColor = '#1C1C1C'
+        numberButton.style.color = '#000000'
+        numberButton.style.textShadow = 'none'
+      }
+
       numberCell.appendChild(numberButton)
 
       // Apply toggled-on style if the number is active
       if (activeNumbers.has(number)) {
         numberButton.classList.add('toggled-on')
         numberButton.style.backgroundColor = getColor(number)
+        // Reset color to white if it was previously dimmed
+        if (
+          !dimNonNeighbours ||
+          neighbourPositions.has(`${index},${numIndex}`)
+        ) {
+          numberButton.style.color = '#fff'
+        }
       }
     })
 
@@ -864,8 +944,228 @@ function displayPairsInDifferentDraws() {
   // Append table to the div
   const pairFrequencyDiv = document.getElementById('pairFrequency')
   if (pairFrequencyDiv) {
-    pairFrequencyDiv.innerHTML = 'selected pairs' // Clear existing content
-    pairFrequencyDiv.appendChild(table)
+    // Create tab bar
+    pairFrequencyDiv.innerHTML = `
+      <div style="display: flex; border-bottom: 1px solid #222; margin-bottom: 8px;">
+        <div id="pairTab_selected" class="pairTab pairTab-active" style="padding: 4px 12px; cursor: pointer; border-bottom: 2px solid #009eba;">selected pairs</div>
+        <div id="pairTab_around" class="pairTab" style="padding: 4px 12px; cursor: pointer;">around</div>
+        <div id="pairTab_number" class="pairTab" style="padding: 4px 12px; cursor: pointer;"></div>
+      </div>
+      <div id="pairTabContent_selected"></div>
+      <div id="pairTabContent_around" style="display:none; padding: 0 0 0 0; margin-top:0; color: #009eba; font-size: 1.2em;"></div>
+      <div id="pairTabContent_number" style="display:none; padding: 8px 0 0 0; color: #009eba; font-size: 1.2em;"></div>
+    `
+    // Insert the table into the selected tab content
+    const selectedContent = pairFrequencyDiv.querySelector(
+      '#pairTabContent_selected'
+    )
+    if (selectedContent) selectedContent.appendChild(table)
+
+    // Fill the 'around' tab with neighbour-tally data
+    const aroundContent = pairFrequencyDiv.querySelector(
+      '#pairTabContent_around'
+    )
+    const toggledNumbers = [...firstSevenToggled, ...additionalToggled]
+    let aroundHTML = ''
+    if (toggledNumbers.length === 0) {
+      aroundHTML = ''
+    } else {
+      // Only show tally for the first toggled number
+      const targetNumber = toggledNumbers[0]
+      const tallyRaw = tallyNeighbours(targetNumber, lottoMaxWinningNumbers2023)
+      // Build a map for quick lookup
+      const tallyMap = new Map(
+        tallyRaw.map((row) => [row.neighbour, row.touches])
+      )
+      // Build a frequency-to-numbers map
+      const freqMap = {}
+      for (let n = 1; n <= 50; n++) {
+        // Do NOT skip the selected number itself
+        const freq = tallyMap.get(n) || 0
+        if (!freqMap[freq]) freqMap[freq] = []
+        freqMap[freq].push(n)
+      }
+      // Sort frequencies descending
+      const sortedFreqs = Object.keys(freqMap)
+        .map(Number)
+        .sort((a, b) => b - a)
+      aroundHTML += `<table style=\"color:#8deeff;font-size:1em;margin-top:0;padding-top:0;\">`
+      sortedFreqs.forEach((freq) => {
+        const nums = freqMap[freq].sort((a, b) => a - b)
+        const numsHTML = nums
+          .map((n) => {
+            if (toggledNumbers.includes(n)) {
+              const textColor =
+                n >= 1 && n <= 20 ? 'black !important' : '#242424 !important'
+              const paddingStyle = n <= 9 ? '1px 7px' : '1px 5px'
+              return `<span style='background:${getColor(
+                n
+              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:top;'>${n}</span>`
+            } else {
+              // Match selected pairs: font-size 0.85em, color #009eba
+              return `<span style='color:#009eba;font-size:0.85em;vertical-align:top;'>${n}</span>`
+            }
+          })
+          .join(
+            ' <span style="color:#009eba;font-size:0.85em;vertical-align:top;">•</span> '
+          )
+        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:top;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
+      })
+      aroundHTML += '</table>'
+    }
+    if (aroundContent) aroundContent.innerHTML = aroundHTML
+
+    // Tab switching logic (restore this!)
+    const tabSel = pairFrequencyDiv.querySelector('#pairTab_selected')
+    const tabAro = pairFrequencyDiv.querySelector('#pairTab_around')
+    const tabNum = pairFrequencyDiv.querySelector('#pairTab_number')
+    const contentSel = pairFrequencyDiv.querySelector(
+      '#pairTabContent_selected'
+    )
+    const contentAro = pairFrequencyDiv.querySelector('#pairTabContent_around')
+    const contentNum = pairFrequencyDiv.querySelector('#pairTabContent_number')
+
+    // Remember last active tab across refreshes
+    let lastActiveTab = window._lastPairTab || 'selected'
+    function activateTab(tab) {
+      if (tab === 'selected') {
+        tabSel.classList.add('pairTab-active')
+        tabAro.classList.remove('pairTab-active')
+        tabNum.classList.remove('pairTab-active')
+        contentSel.style.display = ''
+        contentAro.style.display = 'none'
+        contentNum.style.display = 'none'
+        tabSel.style.borderBottom = '2px solid #009eba'
+        tabAro.style.borderBottom = 'none'
+        tabNum.style.borderBottom = 'none'
+        tabSel.style.color = '#009eba'
+        tabAro.style.color = '#009eba'
+        tabNum.style.color = '#009eba'
+        window._lastPairTab = 'selected'
+        // Update winning numbers table when leaving 'around' tab
+        populateWinningNumbersTable(dataToShow)
+      } else if (tab === 'around') {
+        tabAro.classList.add('pairTab-active')
+        tabSel.classList.remove('pairTab-active')
+        tabNum.classList.remove('pairTab-active')
+        contentSel.style.display = 'none'
+        contentAro.style.display = ''
+        contentNum.style.display = 'none'
+        tabAro.style.borderBottom = '2px solid #009eba'
+        tabSel.style.borderBottom = 'none'
+        tabNum.style.borderBottom = 'none'
+        tabSel.style.color = '#009eba'
+        tabAro.style.color = '#009eba'
+        tabNum.style.color = '#009eba'
+        window._lastPairTab = 'around'
+        // Update winning numbers table when entering 'around' tab
+        populateWinningNumbersTable(dataToShow)
+      } else if (tab === 'number') {
+        tabNum.classList.add('pairTab-active')
+        tabSel.classList.remove('pairTab-active')
+        tabAro.classList.remove('pairTab-active')
+        contentSel.style.display = 'none'
+        contentAro.style.display = 'none'
+        contentNum.style.display = ''
+        tabNum.style.borderBottom = '2px solid #009eba'
+        tabSel.style.borderBottom = 'none'
+        tabAro.style.borderBottom = 'none'
+        tabSel.style.color = '#009eba'
+        tabAro.style.color = '#009eba'
+        tabNum.style.color = '#009eba'
+        window._lastPairTab = 'number'
+        // Update winning numbers table when leaving 'around' tab
+        populateWinningNumbersTable(dataToShow)
+      }
+    }
+    if (tabSel && tabAro && tabNum && contentSel && contentAro && contentNum) {
+      tabSel.onclick = () => activateTab('selected')
+      tabAro.onclick = () => activateTab('around')
+      tabNum.onclick = () => activateTab('number')
+      activateTab(lastActiveTab)
+    }
+
+    // --- Show toggled numbers in the 'around' tab label ---
+    if (tabAro) {
+      const toggledNumbers = [...firstSevenToggled, ...additionalToggled]
+      let numHTML = ''
+      if (toggledNumbers.length > 0) {
+        const num = toggledNumbers[0]
+        const textColor =
+          num >= 1 && num <= 20 ? 'black !important' : '#242424 !important'
+        const paddingStyle = num <= 9 ? '1px 7px' : '1px 5px'
+        numHTML = `<span style=\"display:inline-block;margin-left:2px;margin-right:2px;padding:${paddingStyle};border-radius:4px;background:${getColor(
+          num
+        )};color:${textColor};font-size:0.85em;vertical-align:middle;\">${num}</span>`
+      }
+      tabAro.innerHTML = `around`
+    }
+    // --- Add number tab label ---
+    if (tabNum) {
+      const toggledNumbers = [...firstSevenToggled, ...additionalToggled]
+      let numHTML = ''
+      if (toggledNumbers.length > 0) {
+        const num = toggledNumbers[0]
+        const textColor =
+          num >= 1 && num <= 20 ? 'black !important' : '#242424 !important'
+        const paddingStyle = num <= 9 ? '1px 7px' : '1px 5px'
+        numHTML = `<span style=\"display:inline-block;padding:${paddingStyle};border-radius:4px;background:${getColor(
+          num
+        )};color:${textColor};font-size:0.85em;vertical-align:middle;pointer-events:none;\">${num}</span>`
+        tabNum.style.pointerEvents = 'none'
+        tabNum.innerHTML = numHTML
+      } else {
+        tabNum.style.pointerEvents = 'none'
+        tabNum.innerHTML = ''
+      }
+    }
+    if (toggledNumbers.length === 0) {
+      aroundHTML = ''
+    } else {
+      // Only show tally for the first toggled number
+      const targetNumber = toggledNumbers[0]
+      const tallyRaw = tallyNeighbours(targetNumber, lottoMaxWinningNumbers2023)
+      // Build a map for quick lookup
+      const tallyMap = new Map(
+        tallyRaw.map((row) => [row.neighbour, row.touches])
+      )
+      // Build a frequency-to-numbers map
+      const freqMap = {}
+      for (let n = 1; n <= 50; n++) {
+        // Do NOT skip the selected number itself
+        const freq = tallyMap.get(n) || 0
+        if (!freqMap[freq]) freqMap[freq] = []
+        freqMap[freq].push(n)
+      }
+      // Sort frequencies descending
+      const sortedFreqs = Object.keys(freqMap)
+        .map(Number)
+        .sort((a, b) => b - a)
+      aroundHTML += `<table style=\"color:#8deeff;font-size:1em;margin-top:0;padding-top:0;\">`
+      sortedFreqs.forEach((freq) => {
+        const nums = freqMap[freq].sort((a, b) => a - b)
+        const numsHTML = nums
+          .map((n) => {
+            if (toggledNumbers.includes(n)) {
+              const textColor =
+                n >= 1 && n <= 20 ? 'black !important' : '#242424 !important'
+              const paddingStyle = n <= 9 ? '1px 7px' : '1px 5px'
+              return `<span style='background:${getColor(
+                n
+              )};color:${textColor};border-radius:4px;padding:${paddingStyle};font-size:0.85em;vertical-align:top;'>${n}</span>`
+            } else {
+              // Match selected pairs: font-size 0.85em, color #009eba
+              return `<span style='color:#009eba;font-size:0.85em;vertical-align:top;'>${n}</span>`
+            }
+          })
+          .join(
+            ' <span style="color:#009eba;font-size:0.85em;vertical-align:top;">•</span> '
+          )
+        aroundHTML += `<tr><td style='padding-right:0.5em; text-align:right; font-size:0.875rem; vertical-align:top;'>${freq}x:</td><td style='text-align:left; vertical-align:middle;'>${numsHTML}</td></tr>`
+      })
+      aroundHTML += '</table>'
+    }
+    // --- End toggled numbers in tab label ---
   }
 }
 
@@ -1339,6 +1639,12 @@ function updateUI() {
   checkAndToggleSaveButtonState()
   updateAllOffButtonOpacity(activeNumbers)
   updateFocusOnDisplay()
+
+  // Update winning numbers table if 'around' tab is active
+  const pairTabAro = document.getElementById('pairTab_around')
+  if (pairTabAro && pairTabAro.classList.contains('pairTab-active')) {
+    populateWinningNumbersTable(dataToShow)
+  }
 }
 
 // Adding event listeners to bottomSelector elements
@@ -2792,3 +3098,53 @@ function updateBoxShadow(color) {
     `
 }
 ////////// move button
+
+// Neighbour tally function
+function tallyNeighbours(targetNumber, draws) {
+  const grid = draws.map((draw) => draw.numbers)
+  const height = grid.length
+  const width = 7
+  const offsets = [
+    [-1, -1],
+    [-1, 0],
+    [-1, +1],
+    [0, -1],
+    [0, +1],
+    [+1, -1],
+    [+1, 0],
+    [+1, +1],
+  ]
+  const tally = {}
+  const seenPairs = new Set()
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (grid[r][c] === targetNumber) {
+        for (const [dr, dc] of offsets) {
+          const nr = r + dr,
+            nc = c + dc
+          if (nr >= 0 && nr < height && nc >= 0 && nc < width) {
+            const val = grid[nr][nc]
+            if (val === targetNumber) {
+              // Only count each adjacency pair once (order-independent)
+              const key = [
+                Math.min(r, nr),
+                Math.min(c, nc),
+                Math.max(r, nr),
+                Math.max(c, nc),
+              ].join(',')
+              if (!seenPairs.has(key)) {
+                tally[targetNumber] = (tally[targetNumber] || 0) + 1
+                seenPairs.add(key)
+              }
+            } else {
+              tally[val] = (tally[val] || 0) + 1
+            }
+          }
+        }
+      }
+    }
+  }
+  return Object.entries(tally)
+    .map(([neighbour, touches]) => ({ neighbour: +neighbour, touches }))
+    .sort((a, b) => b.touches - a.touches)
+}

@@ -7,10 +7,45 @@ export default function LottoEnhanced() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
+    // Register service worker for offline functionality
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful:', registration);
+            
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New service worker available
+                    setUpdateAvailable(true);
+                  }
+                });
+              }
+            });
+            
+            // Check for updates on page focus
+            document.addEventListener('visibilitychange', () => {
+              if (!document.hidden) {
+                registration.update();
+              }
+            });
+          })
+          .catch(err => {
+            console.log('ServiceWorker registration failed:', err);
+          });
+      });
+    }
+
     // Check authentication
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -35,6 +70,23 @@ export default function LottoEnhanced() {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    // Monitor online/offline status
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check initial state
+    setIsOnline(navigator.onLine);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
   useEffect(() => {
@@ -303,6 +355,74 @@ export default function LottoEnhanced() {
           }}
           onClick={() => setMenuOpen(false)}
         />
+      )}
+      
+      {/* Update available notification */}
+      {updateAvailable && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 204, 255, 0.9)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '500',
+          zIndex: 1002,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+        }}>
+          <span>🔄</span>
+          <span>Update available!</span>
+          <button
+            onClick={() => {
+              if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                window.location.reload();
+              }
+            }}
+            style={{
+              background: 'white',
+              color: '#0099cc',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: '4px',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh
+          </button>
+        </div>
+      )}
+      
+      {/* Offline indicator */}
+      {!isOnline && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(255, 51, 51, 0.9)',
+          color: 'white',
+          padding: '10px 20px',
+          borderRadius: '20px',
+          fontSize: '14px',
+          fontWeight: '500',
+          zIndex: 1001,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.3)'
+        }}>
+          <span>📵</span>
+          <span>You're offline - Some features may be limited</span>
+        </div>
       )}
       
       {/* Container for the original LOTTO app */}

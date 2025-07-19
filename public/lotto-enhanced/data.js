@@ -2,7 +2,8 @@
 
 //export const lottoMaxWinningNumbers2023 = [
 const lottoMaxWinningNumbers2023 = [
- 
+
+  { date: 'July 18, 2025', numbers: [9, 14, 33, 40, 41, 43, 44], bonus: 4, jackpot: 24000000 },
   { date: 'July 15, 2025', numbers: [3, 4, 7, 14, 24, 41, 43], bonus: 27, jackpot: 19000000 },
   { date: 'July 11, 2025', numbers: [4, 5, 10, 34, 36, 44, 50], bonus: 23, jackpot: 70000000 },
   { date: 'July 8, 2025', numbers: [7, 8, 18, 27, 38, 48, 50], bonus: 5, jackpot: 65000000 },

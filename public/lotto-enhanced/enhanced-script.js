@@ -144,6 +144,13 @@ function loadDataScript() {
         } catch (error) {
           console.warn('⚠️ Failed to parse cached data:', error)
         }
+      } else {
+        console.warn(
+          '⚠️ No cache available - this might be first visit on Vercel'
+        )
+        console.log(
+          '💡 On Vercel, offline mode needs at least one successful online visit first'
+        )
       }
     }
 

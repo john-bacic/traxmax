@@ -19,11 +19,29 @@ export default function LottoEnhanced() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw-lotto-enhanced.js')
         .then((registration) => {
-          console.log('Lotto Enhanced SW registered:', registration);
-          setIsOfflineReady(true);
+          console.log('✅ Lotto Enhanced SW registered:', registration);
+          
+          // Force cache update on Vercel to ensure data.js is cached
+          if (registration.active) {
+            console.log('🔄 Service worker active, cache should be ready');
+            setIsOfflineReady(true);
+          } else {
+            console.log('⏳ Service worker installing, waiting for activation...');
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'activated') {
+                    console.log('✅ Service worker activated, cache ready');
+                    setIsOfflineReady(true);
+                  }
+                });
+              }
+            });
+          }
         })
         .catch((error) => {
-          console.log('Lotto Enhanced SW registration failed:', error);
+          console.error('❌ Lotto Enhanced SW registration failed:', error);
         });
     }
 

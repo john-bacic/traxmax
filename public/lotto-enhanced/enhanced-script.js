@@ -106,13 +106,18 @@ async function loadDataFromSupabase() {
 
 // Function to load local data script (returns Promise)
 function loadDataScript() {
+  console.log('loadDataScript called')
   return new Promise((resolve, reject) => {
     // First check if data is already loaded
     if (
       window.lottoMaxWinningNumbers2023 &&
       window.lottoMaxWinningNumbers2023.length > 0
     ) {
-      console.log('Data already loaded, using existing data')
+      console.log(
+        'Data already loaded, using existing data:',
+        window.lottoMaxWinningNumbers2023.length,
+        'draws'
+      )
       resolve()
       return
     }
@@ -135,6 +140,7 @@ function loadDataScript() {
     }
 
     // Load fresh data.js
+    console.log('Loading fresh data.js script...')
     const script = document.createElement('script')
     script.src = '/lotto-enhanced/data.js'
     script.onload = () => {
@@ -230,6 +236,9 @@ function showDataLoader() {
   const loader = document.getElementById('dataLoader')
   if (loader) {
     loader.classList.remove('hidden')
+    console.log('Data loader shown')
+  } else {
+    console.log('Data loader element not found')
   }
 }
 
@@ -238,12 +247,16 @@ function hideDataLoader() {
   const loader = document.getElementById('dataLoader')
   if (loader) {
     loader.classList.add('hidden')
+    console.log('Data loader hidden')
+  } else {
+    console.log('Data loader element not found when trying to hide')
   }
 }
 
 // Initialize the app
 async function initializeEnhancedLotto() {
-  // Show loading spinner
+  console.log('Initializing enhanced lotto...')
+  // Loader should already be visible by default, just ensure it's shown
   showDataLoader()
 
   // Set Supabase credentials from parent
@@ -302,6 +315,20 @@ async function initializeEnhancedLotto() {
         // Hide loading spinner - everything is ready
         hideDataLoader()
         console.log('App fully initialized - loader hidden')
+
+        // Verify data loaded
+        if (
+          window.lottoMaxWinningNumbers2023 &&
+          window.lottoMaxWinningNumbers2023.length > 0
+        ) {
+          console.log(
+            '✅ Data verification: Lottery data loaded successfully -',
+            window.lottoMaxWinningNumbers2023.length,
+            'draws available'
+          )
+        } else {
+          console.log('❌ Data verification: No lottery data found!')
+        }
       }, 500) // Increased timeout to ensure DOM and script are fully ready
     }
     document.body.appendChild(script)
@@ -316,7 +343,21 @@ async function initializeEnhancedLotto() {
 }
 
 // Start initialization
-initializeEnhancedLotto()
+console.log('Starting enhanced lotto initialization...')
+initializeEnhancedLotto().catch((error) => {
+  console.error('Failed to initialize enhanced lotto:', error)
+  // Make sure to hide loader on any error
+  hideDataLoader()
+})
+
+// Fallback: Hide loader after 10 seconds if something goes wrong
+setTimeout(() => {
+  const loader = document.getElementById('dataLoader')
+  if (loader && !loader.classList.contains('hidden')) {
+    console.log('Fallback: Hiding loader after timeout')
+    hideDataLoader()
+  }
+}, 10000)
 
 // Initialize offline indicator immediately
 if (document.readyState === 'loading') {

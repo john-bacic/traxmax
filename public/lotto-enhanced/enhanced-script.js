@@ -94,38 +94,28 @@ async function loadDataFromSupabase() {
 function loadDataScript() {
   console.log('loadDataScript called')
   return new Promise((resolve, reject) => {
-    // First check if data is already loaded
-    if (
-      window.lottoMaxWinningNumbers2023 &&
-      window.lottoMaxWinningNumbers2023.length > 0
-    ) {
-      console.log(
-        'Data already loaded, using existing data:',
-        window.lottoMaxWinningNumbers2023.length,
-        'draws'
-      )
-      resolve()
-      return
-    }
+    // Always reload data.js after navigation to ensure proper initialization
+    // The early return was causing issues when navigating back from /game
+    console.log(
+      'Loading fresh data.js script (always reload after navigation)...'
+    )
 
-    // Try to load from cache first
+    // Try to load from cache as fallback
     const cachedData = localStorage.getItem('lotto-cached-data')
     if (cachedData) {
       try {
         window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
         console.log(
-          'Loaded data from cache:',
+          'Preloaded data from cache as fallback:',
           window.lottoMaxWinningNumbers2023.length,
           'draws'
         )
-        resolve()
-        return
       } catch (error) {
-        console.log('Failed to parse cached data, loading fresh')
+        console.log('Failed to parse cached data, will load fresh')
       }
     }
 
-    // Load fresh data.js
+    // Always load fresh data.js
     console.log('Loading fresh data.js script...')
     const script = document.createElement('script')
     script.src = '/lotto-enhanced/data.js'

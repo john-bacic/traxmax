@@ -1,7 +1,7 @@
 // prettier-ignore
 
 //export const lottoMaxWinningNumbers2023 = [
-const lottoMaxWinningNumbers2023 = [
+window.lottoMaxWinningNumbers2023 = [
 
   { date: 'July 18, 2025', numbers: [9, 14, 33, 40, 41, 43, 44], bonus: 4, jackpot: 24000000 },
   { date: 'July 15, 2025', numbers: [3, 4, 7, 14, 24, 41, 43], bonus: 27, jackpot: 19000000 },
@@ -521,6 +521,3 @@ const lottoMaxWinningNumbers2023 = [
   { date: 'January 3, 2023', numbers: [9, 25, 32, 34, 37, 46, 50], bonus: 18, jackpot: 30000000 },
 
 ];
-
-// Make the data available globally
-window.lottoMaxWinningNumbers2023 = lottoMaxWinningNumbers2023

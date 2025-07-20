@@ -226,7 +226,7 @@ function showDataLoader() {
     loader.style.backgroundColor = 'rgba(0, 0, 0, 0.9)' // Make sure background is visible
     loader.style.zIndex = '99999' // Ensure it's on top
     console.log(
-      'Data loader shown - should see spinner and "Loading lottery data..." text'
+      'Data loader shown - should see spinner and "Loading data..." text'
     )
 
     // Check if loading text is present
@@ -268,19 +268,24 @@ async function initializeEnhancedLotto() {
     window.parent.SUPABASE_ANON_KEY || localStorage.getItem('supabase_anon_key')
 
   try {
-    // Load data.js first (critical for app functionality)
+    console.log('🔄 Step 1: Loading data.js...')
     await loadDataScript()
+    console.log('✅ Step 1 complete: data.js loaded')
 
-    // Load data from Supabase
+    console.log('🔄 Step 2: Loading Supabase data...')
     await loadDataFromSupabase()
+    console.log('✅ Step 2 complete: Supabase check done')
 
-    // Load user's saved numbers
+    console.log('🔄 Step 3: Loading user saved numbers...')
     await loadUserSavedNumbers()
+    console.log('✅ Step 3 complete: User data loaded')
 
-    // Wait for minimum loading time to complete
+    console.log('🔄 Step 4: Waiting for minimum loading time...')
     await minLoadingTime
+    console.log('✅ Step 4 complete: Minimum time elapsed')
   } catch (error) {
-    console.error('Error during initialization:', error)
+    console.error('❌ Error during initialization step:', error)
+    console.error('Error stack:', error.stack)
     // Wait for minimum time even on error, then hide loader
     await minLoadingTime
     hideDataLoader()
@@ -337,6 +342,13 @@ async function initializeEnhancedLotto() {
         }
       }, 500) // Increased timeout to ensure DOM and script are fully ready
     }
+    script.onerror = () => {
+      console.log(
+        'Original script failed to load, continuing with enhanced features only'
+      )
+      // Hide loader even if script fails
+      hideDataLoader()
+    }
     document.body.appendChild(script)
   }
 
@@ -346,6 +358,8 @@ async function initializeEnhancedLotto() {
   } else {
     loadOriginalScript()
   }
+
+  console.log('🎯 Initialization complete - script loading initiated')
 }
 
 // Start initialization
@@ -356,14 +370,26 @@ initializeEnhancedLotto().catch((error) => {
   hideDataLoader()
 })
 
-// Fallback: Hide loader after 10 seconds if something goes wrong
+// Fallback: Hide loader after 5 seconds if something goes wrong
 setTimeout(() => {
   const loader = document.getElementById('dataLoader')
   if (loader && !loader.classList.contains('hidden')) {
-    console.log('Fallback: Hiding loader after timeout')
+    console.log(
+      '⚠️ FALLBACK: Hiding loader after 5 seconds - something went wrong'
+    )
     hideDataLoader()
   }
-}, 10000)
+}, 5000)
+
+// More aggressive fallback after 3 seconds
+setTimeout(() => {
+  const loader = document.getElementById('dataLoader')
+  if (loader && !loader.classList.contains('hidden')) {
+    console.log('🚨 EMERGENCY: Force hiding loader after 3 seconds')
+    loader.style.display = 'none'
+    loader.classList.add('hidden')
+  }
+}, 3000)
 
 // Initialize offline indicator immediately
 if (document.readyState === 'loading') {

@@ -238,26 +238,70 @@ function loadDataScript() {
           'draws'
         )
         resolve()
-      } else if (cachedData) {
-        // Fallback: reload from localStorage if preload failed
-        try {
-          window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
-          console.log(
-            '🔄 Using localStorage cache after script load failure:',
-            window.lottoMaxWinningNumbers2023.length,
-            'draws'
-          )
-          resolve()
-        } catch (error) {
-          console.error(
-            '❌ Failed to parse cached data after script failure:',
-            error
-          )
-          reject(new Error('Failed to load data script and cache failed'))
-        }
-      } else {
-        reject(new Error('Failed to load data script and no cache available'))
+        return
       }
+
+      // Try direct fetch to let service worker handle caching (without cache busting)
+      console.log(
+        '🔄 Script tag failed, trying direct fetch for service worker cache...'
+      )
+      fetch('/lotto-enhanced/data.js')
+        .then((response) => {
+          if (response.ok) {
+            return response.text()
+          }
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        })
+        .then((scriptText) => {
+          console.log('✅ Direct fetch succeeded, executing script...')
+          try {
+            eval(scriptText)
+            if (
+              window.lottoMaxWinningNumbers2023 &&
+              window.lottoMaxWinningNumbers2023.length > 0
+            ) {
+              console.log(
+                '✅ Data loaded via direct fetch:',
+                window.lottoMaxWinningNumbers2023.length,
+                'draws'
+              )
+              resolve()
+            } else {
+              throw new Error('Data not available after direct fetch execution')
+            }
+          } catch (execError) {
+            console.error(
+              '❌ Failed to execute direct fetched script:',
+              execError
+            )
+            throw execError
+          }
+        })
+        .catch((fetchError) => {
+          console.error('❌ Direct fetch also failed:', fetchError)
+
+          // Final fallback to localStorage cache
+          if (cachedData) {
+            try {
+              window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
+              console.log(
+                '🔄 Using localStorage cache after all network attempts failed:',
+                window.lottoMaxWinningNumbers2023.length,
+                'draws'
+              )
+              resolve()
+            } catch (error) {
+              console.error('❌ Failed to parse cached data:', error)
+              reject(
+                new Error(
+                  'All loading attempts failed including cache fallback'
+                )
+              )
+            }
+          } else {
+            reject(new Error('No data loaded and no cache available'))
+          }
+        })
     }
     document.head.appendChild(script)
   })

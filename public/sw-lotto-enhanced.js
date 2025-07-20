@@ -252,12 +252,29 @@ async function cacheFontFilesFromCSS(cssText) {
 // Handle lotto-enhanced specific requests with priority caching
 async function handleLottoEnhancedRequest(request) {
   try {
-    // Try cache first for lotto-enhanced resources
-    const cachedResponse = await caches.match(request)
+    const url = new URL(request.url)
+    const baseUrl = url.pathname
+
+    // For cache-busted URLs (e.g., data.js?t=123), try to match the base URL first
+    let cachedResponse = await caches.match(request)
+
+    if (!cachedResponse && url.search) {
+      // If cache-busted URL didn't match, try the base URL without query params
+      console.log(
+        `[Lotto Enhanced SW] Cache-busted URL ${request.url}, trying base URL ${baseUrl}`
+      )
+      const baseRequest = new Request(baseUrl, {
+        method: request.method,
+        headers: request.headers,
+        mode: request.mode,
+        credentials: request.credentials,
+      })
+      cachedResponse = await caches.match(baseRequest)
+    }
 
     if (cachedResponse) {
       console.log(
-        '[Lotto Enhanced SW] Serving lotto content from cache:',
+        '[Lotto Enhanced SW] ✅ Serving lotto content from cache:',
         request.url
       )
 
@@ -283,18 +300,21 @@ async function handleLottoEnhancedRequest(request) {
     }
 
     // Try network
+    console.log(`[Lotto Enhanced SW] 🌐 Fetching from network: ${request.url}`)
     const networkResponse = await fetch(request)
 
     if (networkResponse.ok) {
-      // Cache successful responses
+      // Cache successful responses using the base URL (without query params)
       const cache = await caches.open(CACHE_NAME)
-      cache.put(request, networkResponse.clone())
+      const cacheRequest = url.search ? new Request(baseUrl) : request
+      cache.put(cacheRequest, networkResponse.clone())
+      console.log(`[Lotto Enhanced SW] 💾 Cached: ${baseUrl}`)
     }
 
     return networkResponse
   } catch (error) {
     console.log(
-      '[Lotto Enhanced SW] Request failed, serving offline content:',
+      '[Lotto Enhanced SW] ❌ Request failed, serving offline content:',
       request.url
     )
 

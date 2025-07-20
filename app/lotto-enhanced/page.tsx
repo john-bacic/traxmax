@@ -277,6 +277,22 @@ export default function LottoEnhanced() {
   return (
     <>
       <style jsx global>{`
+        /* Font fallbacks for offline mode */
+        @font-face {
+          font-family: 'Lexend-fallback';
+          src: local('SF Pro Display'), local('Segoe UI'), local('Roboto'), local('Arial'), sans-serif;
+          font-display: swap;
+        }
+        
+        /* Override font families to include fallbacks */
+        body, .easter-egg, .countdown-timer, .number-button {
+          font-family: 'Lexend', 'Lexend-fallback', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif !important;
+        }
+        
+        .trispace, h1, h2, h3 {
+          font-family: 'Trispace', 'Lexend', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, system-ui, sans-serif !important;
+        }
+        
         html, body {
           overflow: hidden;
           height: 100%;

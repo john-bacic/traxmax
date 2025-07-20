@@ -1,5 +1,5 @@
 // Service Worker for Lotto Enhanced - Comprehensive offline support
-const CACHE_NAME = 'lotto-enhanced-v1'
+const CACHE_NAME = 'lotto-enhanced-v2'
 const OFFLINE_URL = '/lotto-enhanced'
 
 // Essential files to cache for offline functionality
@@ -19,6 +19,15 @@ const urlsToCache = [
   '/_next/static/chunks/',
 ]
 
+// Google Fonts URLs to cache for offline use
+const fontUrlsToCache = [
+  'https://fonts.googleapis.com/css?family=Lexend',
+  'https://fonts.googleapis.com/css2?family=Lexend:wght@100;200;300;400;500;600;700;800;900&family=Trispace:wght@500&display=swap',
+]
+
+// Font file extensions to cache from gstatic.com
+const fontFileExtensions = ['.woff2', '.woff', '.ttf', '.eot']
+
 // Install event - cache essential resources
 self.addEventListener('install', (event) => {
   console.log('[Lotto Enhanced SW] Installing...')
@@ -26,15 +35,23 @@ self.addEventListener('install', (event) => {
     caches
       .open(CACHE_NAME)
       .then((cache) => {
-        console.log('[Lotto Enhanced SW] Caching app shell')
-        // Cache each URL individually to avoid failures
-        return Promise.allSettled(
-          urlsToCache.map((url) =>
-            cache
-              .add(new Request(url, { mode: 'no-cors' }))
-              .catch((e) => console.log(`Failed to cache ${url}:`, e))
-          )
+        console.log('[Lotto Enhanced SW] Caching app shell and fonts')
+        // Cache app files
+        const appCachePromises = urlsToCache.map((url) =>
+          cache
+            .add(new Request(url, { mode: 'no-cors' }))
+            .catch((e) => console.log(`Failed to cache ${url}:`, e))
         )
+
+        // Cache Google Fonts
+        const fontCachePromises = fontUrlsToCache.map((url) =>
+          cache
+            .add(new Request(url, { mode: 'cors' }))
+            .catch((e) => console.log(`Failed to cache font ${url}:`, e))
+        )
+
+        // Cache all resources
+        return Promise.allSettled([...appCachePromises, ...fontCachePromises])
       })
       .then(() => {
         console.log('[Lotto Enhanced SW] Installation successful')
@@ -79,6 +96,15 @@ self.addEventListener('fetch', (event) => {
 
   // Skip chrome-extension and non-http requests
   if (!request.url.startsWith('http')) return
+
+  // Special handling for Google Fonts
+  if (
+    request.url.includes('fonts.googleapis.com') ||
+    request.url.includes('fonts.gstatic.com')
+  ) {
+    event.respondWith(handleFontRequest(request))
+    return
+  }
 
   // Special handling for lotto-enhanced pages
   if (request.url.includes('/lotto-enhanced')) {
@@ -130,6 +156,98 @@ self.addEventListener('fetch', (event) => {
     })
   )
 })
+
+// Handle Google Fonts requests with long-term caching
+async function handleFontRequest(request) {
+  try {
+    // Try cache first (fonts can be cached for a long time)
+    const cachedResponse = await caches.match(request)
+
+    if (cachedResponse) {
+      console.log('[Lotto Enhanced SW] Serving font from cache:', request.url)
+      return cachedResponse
+    }
+
+    // Try network
+    const networkResponse = await fetch(request)
+
+    if (networkResponse.ok) {
+      // Cache fonts with a long-term strategy
+      const cache = await caches.open(CACHE_NAME)
+      cache.put(request, networkResponse.clone())
+      console.log('[Lotto Enhanced SW] Cached font:', request.url)
+
+      // If this is a CSS file from googleapis.com, parse it to find font files
+      if (
+        request.url.includes('fonts.googleapis.com') &&
+        request.url.includes('.css')
+      ) {
+        try {
+          const cssText = await networkResponse.clone().text()
+          cacheFontFilesFromCSS(cssText)
+        } catch (e) {
+          console.log('[Lotto Enhanced SW] Failed to parse font CSS:', e)
+        }
+      }
+    }
+
+    return networkResponse
+  } catch (error) {
+    console.log('[Lotto Enhanced SW] Font request failed:', request.url, error)
+
+    // Return cached version if available (fallback)
+    const cachedResponse = await caches.match(request)
+    if (cachedResponse) {
+      return cachedResponse
+    }
+
+    // If no cache and network fails, font will simply not load (graceful degradation)
+    return new Response('', { status: 404 })
+  }
+}
+
+// Extract and cache font files from Google Fonts CSS
+async function cacheFontFilesFromCSS(cssText) {
+  try {
+    // Extract URLs from url() declarations in the CSS
+    const urlMatches = cssText.match(
+      /url\(['"]?(https:\/\/fonts\.gstatic\.com[^'")\s]+)['"]?\)/g
+    )
+
+    if (urlMatches) {
+      const cache = await caches.open(CACHE_NAME)
+
+      for (const match of urlMatches) {
+        const urlMatch = match.match(
+          /url\(['"]?(https:\/\/fonts\.gstatic\.com[^'")\s]+)['"]?\)/
+        )
+        if (urlMatch && urlMatch[1]) {
+          const fontUrl = urlMatch[1]
+
+          // Check if we already have this font file cached
+          const existing = await cache.match(fontUrl)
+          if (!existing) {
+            try {
+              const fontResponse = await fetch(fontUrl)
+              if (fontResponse.ok) {
+                await cache.put(fontUrl, fontResponse)
+                console.log('[Lotto Enhanced SW] Cached font file:', fontUrl)
+              }
+            } catch (e) {
+              console.log(
+                '[Lotto Enhanced SW] Failed to cache font file:',
+                fontUrl,
+                e
+              )
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.log('[Lotto Enhanced SW] Error caching font files:', error)
+  }
+}
 
 // Handle lotto-enhanced specific requests with priority caching
 async function handleLottoEnhancedRequest(request) {

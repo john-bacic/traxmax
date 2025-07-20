@@ -330,39 +330,6 @@ export default function LottoEnhanced() {
           </div>
           
           <div style={{ borderTop: '1px solid rgba(58, 58, 58, 0.3)', paddingTop: '15px' }}>
-            {/* Game link for all users */}
-            <button
-              onClick={() => router.push('/game')}
-              style={{
-                width: '100%',
-                background: 'rgba(126, 104, 207, 0.8)',
-                border: '1px solid rgba(126, 104, 207, 0.5)',
-                color: '#ffffff',
-                padding: '12px 0',
-                minWidth: '100%',
-                cursor: 'pointer',
-                marginBottom: '10px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'all 0.3s ease',
-                backdropFilter: 'blur(10px)',
-                boxSizing: 'border-box'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = 'rgba(126, 104, 207, 1)';
-                e.currentTarget.style.borderColor = 'rgba(126, 104, 207, 0.8)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = 'rgba(126, 104, 207, 0.8)';
-                e.currentTarget.style.borderColor = 'rgba(126, 104, 207, 0.5)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              🎮 Play Game
-            </button>
-            
             {user?.email === 'demo@example.com' ? (
               <>
                 <button
@@ -476,6 +443,39 @@ export default function LottoEnhanced() {
                 </button>
               </>
             )}
+            
+            {/* Game link for all users - positioned last */}
+            <button
+              onClick={() => router.push('/game')}
+              style={{
+                width: '100%',
+                background: 'rgba(126, 104, 207, 0.8)',
+                border: '1px solid rgba(126, 104, 207, 0.5)',
+                color: '#ffffff',
+                padding: '12px 0',
+                minWidth: '100%',
+                cursor: 'pointer',
+                marginTop: '10px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                boxSizing: 'border-box'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(126, 104, 207, 1)';
+                e.currentTarget.style.borderColor = 'rgba(126, 104, 207, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(126, 104, 207, 0.8)';
+                e.currentTarget.style.borderColor = 'rgba(126, 104, 207, 0.5)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              🎮 Play Game
+            </button>
           </div>
         </div>
       )}

@@ -462,8 +462,7 @@ button.allOff {
   display: none;
 }
 
-#horizontal {
-}
+
 
 .easter-egg {
   position: absolute;
@@ -868,6 +867,41 @@ body.lotto-active #linkList {
 }
 
 /* Removed forRandSpacer override to allow JavaScript control */
+
+/* Offline indicator styles */
+.offline-indicator {
+  display: none;
+  margin-right: 10px;
+  cursor: pointer;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.offline-indicator:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.offline-indicator svg {
+  display: block;
+  transition: filter 0.3s ease;
+}
+
+.offline-indicator:active svg {
+  filter: brightness(1.2);
+}
+
+/* Right side container for offline indicator and hamburger menu */
+.topNav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 /* Hamburger menu styles */
 .hamburger-menu {

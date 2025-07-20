@@ -154,13 +154,28 @@ export default function LottoEnhanced() {
           // Offline indicator is now handled by the SVG icon in topNav
           // Let the enhanced-script.js handle its own offline detection
           
-          // Load the enhanced script that connects to Supabase (only if not already loaded)
-          if (!document.querySelector('script[src="/lotto-enhanced/enhanced-script.js"]')) {
-            const script = document.createElement('script');
-            script.src = '/lotto-enhanced/enhanced-script.js';
-            script.type = 'module';
-            document.body.appendChild(script);
+          // Clean up any existing enhanced scripts to ensure fresh load after navigation
+          const existingEnhancedScripts = document.querySelectorAll('script[src*="/lotto-enhanced/enhanced-script.js"]');
+          console.log('🧹 Removing existing enhanced-script.js instances:', existingEnhancedScripts.length);
+          existingEnhancedScripts.forEach(script => script.remove());
+          
+          // Also clean up any data.js scripts from previous sessions
+          const existingDataScripts = document.querySelectorAll('script[src*="/lotto-enhanced/data.js"]');
+          console.log('🧹 Removing existing data.js instances:', existingDataScripts.length);
+          existingDataScripts.forEach(script => script.remove());
+          
+          // Clear any window data from previous sessions
+          if ((window as any).lottoMaxWinningNumbers2023) {
+            console.log('🧹 Clearing existing window.lottoMaxWinningNumbers2023');
+            delete (window as any).lottoMaxWinningNumbers2023;
           }
+          
+          // Always load fresh enhanced script for proper initialization
+          console.log('📥 Loading fresh enhanced-script.js');
+          const script = document.createElement('script');
+          script.src = `/lotto-enhanced/enhanced-script.js?t=${Date.now()}`;
+          script.type = 'module';
+          document.body.appendChild(script);
           
           setupScrollHandlers(container);
         } catch (error) {

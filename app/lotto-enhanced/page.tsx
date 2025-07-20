@@ -129,10 +129,10 @@ export default function LottoEnhanced() {
           const html = await response.text();
           container.innerHTML = html;
           
-          // Add offline indicator to the content
-          if (!isOnline) {
-            addOfflineIndicator(container);
-          }
+          // Offline indicator is now handled by the SVG icon in topNav
+          
+          // Pass offline status to the embedded content
+          (window as any).IS_OFFLINE = !isOnline;
           
           // Load the enhanced script that connects to Supabase
           const script = document.createElement('script');
@@ -152,28 +152,7 @@ export default function LottoEnhanced() {
     }
   };
 
-  const addOfflineIndicator = (container: HTMLElement) => {
-    const offlineIndicator = document.createElement('div');
-    offlineIndicator.innerHTML = `
-      <div style="
-        position: fixed; 
-        top: 10px; 
-        left: 50%; 
-        transform: translateX(-50%); 
-        background: rgba(255, 193, 7, 0.95); 
-        color: #000; 
-        padding: 8px 16px; 
-        border-radius: 20px; 
-        font-size: 12px; 
-        font-weight: 600; 
-        z-index: 10000;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      ">
-        🔌 OFFLINE MODE - Using cached data
-      </div>
-    `;
-    container.appendChild(offlineIndicator);
-  };
+
 
   const loadOfflineFallback = (container: HTMLElement) => {
     container.innerHTML = `

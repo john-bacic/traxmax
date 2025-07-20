@@ -15,6 +15,26 @@ const isOfflineMode = window.IS_OFFLINE || !navigator.onLine
 // Load the original data first
 let lottoMaxWinningNumbers2023 = []
 
+// Function to update offline indicator
+function updateOfflineIndicator(isOffline) {
+  const offlineIndicator = document.getElementById('offline-indicator')
+  if (offlineIndicator) {
+    offlineIndicator.style.display = isOffline ? 'block' : 'none'
+  }
+}
+
+// Function to handle online/offline status changes
+function handleConnectionChange() {
+  const isCurrentlyOffline = !navigator.onLine || window.IS_OFFLINE
+  updateOfflineIndicator(isCurrentlyOffline)
+
+  if (isCurrentlyOffline) {
+    console.log('App is now offline - showing offline indicator')
+  } else {
+    console.log('App is now online - hiding offline indicator')
+  }
+}
+
 // Function to load data from Supabase or cache
 async function loadDataFromSupabase() {
   try {
@@ -189,6 +209,13 @@ initializeEnhancedLotto()
 document.addEventListener('DOMContentLoaded', () => {
   // Add lotto-active class to body
   document.body.classList.add('lotto-active')
+
+  // Initialize offline indicator
+  updateOfflineIndicator(isOfflineMode || !navigator.onLine)
+
+  // Listen for online/offline events
+  window.addEventListener('online', handleConnectionChange)
+  window.addEventListener('offline', handleConnectionChange)
 
   // Add sticky scroll detection
   setTimeout(() => {

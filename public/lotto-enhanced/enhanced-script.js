@@ -122,14 +122,29 @@ function loadDataScript() {
       cachedData ? `(${JSON.parse(cachedData).length} draws)` : ''
     )
 
-    // Clear existing data only if we're likely navigating back (data already exists)
-    if (window.lottoMaxWinningNumbers2023) {
-      console.log(
-        '🧹 Clearing existing window.lottoMaxWinningNumbers2023 (likely navigation)'
-      )
+    // Determine if this is navigation (stale data exists) vs fresh load
+    const isNavigation = !!window.lottoMaxWinningNumbers2023
+
+    if (isNavigation) {
+      console.log('🧹 Navigation detected - clearing stale data')
       delete window.lottoMaxWinningNumbers2023
     } else {
-      console.log('🆕 No existing data - fresh load or offline mode')
+      console.log(
+        '🆕 Fresh load detected - preloading cache for offline fallback'
+      )
+      // Preload cache for offline mode, but network request will still be attempted
+      if (cachedData) {
+        try {
+          window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
+          console.log(
+            '✅ Cache preloaded for offline fallback:',
+            window.lottoMaxWinningNumbers2023.length,
+            'draws'
+          )
+        } catch (error) {
+          console.warn('⚠️ Failed to parse cached data:', error)
+        }
+      }
     }
 
     // Remove any existing data.js scripts first
@@ -170,7 +185,7 @@ function loadDataScript() {
           JSON.stringify(window.lottoMaxWinningNumbers2023)
         )
         console.log(
-          '💾 Loaded and cached fresh lotto data:',
+          '🌐 Loaded and cached fresh network data:',
           window.lottoMaxWinningNumbers2023.length,
           'draws'
         )

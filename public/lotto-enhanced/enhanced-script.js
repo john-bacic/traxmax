@@ -383,9 +383,38 @@ async function initializeEnhancedLotto() {
       'draws'
     )
 
+    // Remove any existing script.js to ensure fresh load
+    const existingScripts = document.querySelectorAll(
+      'script[src*="/lotto-enhanced/script.js"]'
+    )
+    console.log(
+      '🗑️ Removing existing script.js instances:',
+      existingScripts.length
+    )
+    existingScripts.forEach((script) => script.remove())
+
+    // Add cache busting and extra verification
     const script = document.createElement('script')
     script.type = 'module'
-    script.src = '/lotto-enhanced/script.js'
+    script.src = `/lotto-enhanced/script.js?t=${Date.now()}`
+
+    // Double-check data exists just before loading
+    script.onload = () => {
+      console.log('✅ script.js loaded, final data verification:')
+      console.log(
+        '  - window.lottoMaxWinningNumbers2023 exists:',
+        !!window.lottoMaxWinningNumbers2023
+      )
+      console.log(
+        '  - window.lottoMaxWinningNumbers2023 length:',
+        window.lottoMaxWinningNumbers2023?.length
+      )
+      console.log(
+        '  - First few draws:',
+        window.lottoMaxWinningNumbers2023?.slice(0, 2)
+      )
+    }
+
     script.onerror = () => {
       console.log(
         'Original script failed to load, continuing with enhanced features only'

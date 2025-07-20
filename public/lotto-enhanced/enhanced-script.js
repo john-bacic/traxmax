@@ -220,12 +220,23 @@ function loadDataScript() {
       console.error('❌ Failed to load data.js script:', error)
       console.error('Script src was:', script.src)
 
-      // Try fallback to cached data
-      if (cachedData) {
+      // Check if we already have preloaded cache data (offline mode scenario)
+      if (
+        window.lottoMaxWinningNumbers2023 &&
+        window.lottoMaxWinningNumbers2023.length > 0
+      ) {
+        console.log(
+          '✅ Using preloaded cache data after network failure:',
+          window.lottoMaxWinningNumbers2023.length,
+          'draws'
+        )
+        resolve()
+      } else if (cachedData) {
+        // Fallback: reload from localStorage if preload failed
         try {
           window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
           console.log(
-            '🔄 Using cached data after script load failure:',
+            '🔄 Using localStorage cache after script load failure:',
             window.lottoMaxWinningNumbers2023.length,
             'draws'
           )

@@ -117,15 +117,20 @@ export default function LottoEnhanced() {
   useEffect(() => {
     const fetchGitInfo = async () => {
       try {
+        console.log('🔍 Fetching Git info...');
         const response = await fetch('/api/git-info');
+        console.log('📡 Git info response status:', response.status);
         const result = await response.json();
+        console.log('📊 Git info result:', result);
         if (result.success) {
+          console.log('✅ Setting Git info:', result.data);
           setGitInfo(result.data);
         } else {
+          console.warn('⚠️ Git info failed, using unknown');
           setGitInfo({commit: 'unknown', branch: 'unknown'});
         }
       } catch (error) {
-        console.error('Failed to fetch Git info:', error);
+        console.error('❌ Failed to fetch Git info:', error);
         setGitInfo({commit: 'error', branch: 'error'});
       }
     };

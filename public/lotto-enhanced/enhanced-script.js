@@ -35,32 +35,6 @@ function handleConnectionChange() {
   }
 }
 
-// Manual toggle function for testing (exposed to global scope)
-window.toggleOfflineIndicator = function () {
-  const offlineIndicator = document.getElementById('offline-indicator')
-  if (offlineIndicator) {
-    const isCurrentlyVisible = offlineIndicator.style.display === 'block'
-    const newState = !isCurrentlyVisible
-    updateOfflineIndicator(newState)
-    console.log(
-      `Offline indicator manually toggled: ${newState ? 'ON' : 'OFF'}`
-    )
-    return newState
-  }
-  return false
-}
-
-// Test function to show indicator for a few seconds
-window.testOfflineIndicator = function (duration = 3000) {
-  console.log(`Testing offline indicator for ${duration}ms...`)
-  updateOfflineIndicator(true)
-
-  setTimeout(() => {
-    updateOfflineIndicator(!navigator.onLine || window.IS_OFFLINE)
-    console.log('Test completed - indicator returned to actual status')
-  }, duration)
-}
-
 // Function to load data from Supabase or cache
 async function loadDataFromSupabase() {
   try {
@@ -236,8 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add lotto-active class to body
   document.body.classList.add('lotto-active')
 
-  // Initialize offline indicator
-  updateOfflineIndicator(isOfflineMode || !navigator.onLine)
+  // Initialize offline indicator - only show when actually offline
+  updateOfflineIndicator(!navigator.onLine || window.IS_OFFLINE)
 
   // Listen for online/offline events
   window.addEventListener('online', handleConnectionChange)

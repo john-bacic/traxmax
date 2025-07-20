@@ -282,8 +282,28 @@ async function initializeEnhancedLotto() {
     return
   }
 
-  // Now load the original script (wait for DOM to be ready)
+  // Now load the original script ONLY after data is confirmed loaded
   const loadOriginalScript = () => {
+    // Critical: Verify data exists before loading script.js
+    if (
+      !window.lottoMaxWinningNumbers2023 ||
+      window.lottoMaxWinningNumbers2023.length === 0
+    ) {
+      console.error('❌ CRITICAL: Cannot load script.js - no data available!')
+      console.error(
+        'window.lottoMaxWinningNumbers2023:',
+        window.lottoMaxWinningNumbers2023
+      )
+      hideDataLoader()
+      return
+    }
+
+    console.log(
+      '✅ Data confirmed available, loading script.js with',
+      window.lottoMaxWinningNumbers2023.length,
+      'draws'
+    )
+
     const script = document.createElement('script')
     script.type = 'module'
     script.src = '/lotto-enhanced/script.js'

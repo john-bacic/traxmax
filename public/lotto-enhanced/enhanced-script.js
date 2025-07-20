@@ -206,16 +206,38 @@ async function initializeEnhancedLotto() {
   // Load user's saved numbers
   await loadUserSavedNumbers()
 
-  // Now load the original script
-  const script = document.createElement('script')
-  script.type = 'module'
-  script.src = '/lotto-enhanced/script.js'
-  script.onerror = () => {
-    console.log(
-      'Original script failed to load, continuing with enhanced features only'
-    )
+  // Now load the original script (wait for DOM to be ready)
+  const loadOriginalScript = () => {
+    const script = document.createElement('script')
+    script.type = 'module'
+    script.src = '/lotto-enhanced/script.js'
+    script.onerror = () => {
+      console.log(
+        'Original script failed to load, continuing with enhanced features only'
+      )
+    }
+    script.onload = () => {
+      console.log('Original script loaded successfully')
+      // Ensure sumText is visible after script loads
+      setTimeout(() => {
+        const sumDiv = document.querySelector('.sumText')
+        if (sumDiv && sumDiv.textContent === '') {
+          // Try to trigger initial calculation if sumText is empty
+          if (typeof calculateAndDisplaySum === 'function') {
+            calculateAndDisplaySum()
+          }
+        }
+      }, 100)
+    }
+    document.body.appendChild(script)
   }
-  document.body.appendChild(script)
+
+  // Ensure DOM is ready before loading script
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadOriginalScript)
+  } else {
+    loadOriginalScript()
+  }
 }
 
 // Start initialization

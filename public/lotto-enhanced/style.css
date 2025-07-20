@@ -491,6 +491,8 @@ button.allOff {
   left: 44px;
   color: #7e68cf;
   margin-bottom: -90px;
+  min-height: 1em; /* Ensure element takes space even when empty */
+  visibility: visible; /* Ensure visibility */
 }
 
 .savedContainer {

@@ -104,30 +104,63 @@ async function loadDataFromSupabase() {
   }
 }
 
-// Function to load local data script
-function loadLocalDataScript() {
-  const script = document.createElement('script')
-  script.src = '/lotto-enhanced/data.js'
-  script.onload = () => {
-    // Cache the loaded data for offline use
-    if (window.lottoMaxWinningNumbers2023) {
-      localStorage.setItem(
-        'lotto-cached-data',
-        JSON.stringify(window.lottoMaxWinningNumbers2023)
-      )
-      console.log('Cached lotto data for offline use')
+// Function to load local data script (returns Promise)
+function loadDataScript() {
+  return new Promise((resolve, reject) => {
+    // First check if data is already loaded
+    if (
+      window.lottoMaxWinningNumbers2023 &&
+      window.lottoMaxWinningNumbers2023.length > 0
+    ) {
+      console.log('Data already loaded, using existing data')
+      resolve()
+      return
     }
-  }
-  script.onerror = () => {
-    console.error('Failed to load lotto data script')
-    // Try to use any cached data as last resort
+
+    // Try to load from cache first
     const cachedData = localStorage.getItem('lotto-cached-data')
     if (cachedData) {
-      window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
-      console.log('Using cached data as fallback')
+      try {
+        window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
+        console.log(
+          'Loaded data from cache:',
+          window.lottoMaxWinningNumbers2023.length,
+          'draws'
+        )
+        resolve()
+        return
+      } catch (error) {
+        console.log('Failed to parse cached data, loading fresh')
+      }
     }
-  }
-  document.head.appendChild(script)
+
+    // Load fresh data.js
+    const script = document.createElement('script')
+    script.src = '/lotto-enhanced/data.js'
+    script.onload = () => {
+      // Cache the loaded data for offline use
+      if (window.lottoMaxWinningNumbers2023) {
+        localStorage.setItem(
+          'lotto-cached-data',
+          JSON.stringify(window.lottoMaxWinningNumbers2023)
+        )
+        console.log(
+          'Loaded and cached fresh lotto data:',
+          window.lottoMaxWinningNumbers2023.length,
+          'draws'
+        )
+        resolve()
+      } else {
+        console.error('Data script loaded but no data found')
+        reject(new Error('No data found in script'))
+      }
+    }
+    script.onerror = () => {
+      console.error('Failed to load lotto data script')
+      reject(new Error('Failed to load data script'))
+    }
+    document.head.appendChild(script)
+  })
 }
 
 // Function to save user's saved numbers to Supabase
@@ -192,19 +225,48 @@ window.saveToLocalStorage = function (sequence) {
   saveToSupabase(sequence.split('-').map(Number))
 }
 
+// Show loading spinner
+function showDataLoader() {
+  const loader = document.getElementById('dataLoader')
+  if (loader) {
+    loader.classList.remove('hidden')
+  }
+}
+
+// Hide loading spinner
+function hideDataLoader() {
+  const loader = document.getElementById('dataLoader')
+  if (loader) {
+    loader.classList.add('hidden')
+  }
+}
+
 // Initialize the app
 async function initializeEnhancedLotto() {
+  // Show loading spinner
+  showDataLoader()
+
   // Set Supabase credentials from parent
   window.SUPABASE_URL =
     window.parent.SUPABASE_URL || localStorage.getItem('supabase_url')
   window.SUPABASE_ANON_KEY =
     window.parent.SUPABASE_ANON_KEY || localStorage.getItem('supabase_anon_key')
 
-  // Load data from Supabase
-  await loadDataFromSupabase()
+  try {
+    // Load data.js first (critical for app functionality)
+    await loadDataScript()
 
-  // Load user's saved numbers
-  await loadUserSavedNumbers()
+    // Load data from Supabase
+    await loadDataFromSupabase()
+
+    // Load user's saved numbers
+    await loadUserSavedNumbers()
+  } catch (error) {
+    console.error('Error during initialization:', error)
+    // Hide loader even on error
+    hideDataLoader()
+    return
+  }
 
   // Now load the original script (wait for DOM to be ready)
   const loadOriginalScript = () => {
@@ -215,6 +277,8 @@ async function initializeEnhancedLotto() {
       console.log(
         'Original script failed to load, continuing with enhanced features only'
       )
+      // Hide loader even if script fails
+      hideDataLoader()
     }
     script.onload = () => {
       console.log('Original script loaded successfully')
@@ -234,6 +298,10 @@ async function initializeEnhancedLotto() {
         } else {
           console.log('sumText element not found')
         }
+
+        // Hide loading spinner - everything is ready
+        hideDataLoader()
+        console.log('App fully initialized - loader hidden')
       }, 500) // Increased timeout to ensure DOM and script are fully ready
     }
     document.body.appendChild(script)

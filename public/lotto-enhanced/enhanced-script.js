@@ -222,9 +222,22 @@ function showDataLoader() {
   const loader = document.getElementById('dataLoader')
   if (loader) {
     loader.classList.remove('hidden')
-    console.log('Data loader shown')
+    loader.style.display = 'flex' // Ensure it's visible
+    loader.style.backgroundColor = 'rgba(0, 0, 0, 0.9)' // Make sure background is visible
+    loader.style.zIndex = '99999' // Ensure it's on top
+    console.log(
+      'Data loader shown - should see spinner and "Loading lottery data..." text'
+    )
+
+    // Check if loading text is present
+    const loadingText = loader.querySelector('.loading-text')
+    if (loadingText) {
+      console.log('Loading text found:', loadingText.textContent)
+    } else {
+      console.log('Loading text element not found!')
+    }
   } else {
-    console.log('Data loader element not found')
+    console.log('Data loader element not found - check if HTML loaded properly')
   }
 }
 
@@ -245,6 +258,9 @@ async function initializeEnhancedLotto() {
   // Loader should already be visible by default, just ensure it's shown
   showDataLoader()
 
+  // Add minimum loading time so user can see the spinner
+  const minLoadingTime = new Promise((resolve) => setTimeout(resolve, 1000))
+
   // Set Supabase credentials from parent
   window.SUPABASE_URL =
     window.parent.SUPABASE_URL || localStorage.getItem('supabase_url')
@@ -260,9 +276,13 @@ async function initializeEnhancedLotto() {
 
     // Load user's saved numbers
     await loadUserSavedNumbers()
+
+    // Wait for minimum loading time to complete
+    await minLoadingTime
   } catch (error) {
     console.error('Error during initialization:', error)
-    // Hide loader even on error
+    // Wait for minimum time even on error, then hide loader
+    await minLoadingTime
     hideDataLoader()
     return
   }

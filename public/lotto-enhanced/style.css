@@ -979,4 +979,8 @@ body.lotto-active #linkList {
   font-size: 1.2rem;
   font-weight: 400;
   text-align: center;
+  color: white;
+  margin-top: 10px;
+  opacity: 1;
+  visibility: visible;
 }

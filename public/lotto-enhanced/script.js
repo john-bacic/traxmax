@@ -3243,3 +3243,22 @@ function tallyNeighbours(targetNumber, draws) {
     .map(([neighbour, touches]) => ({ neighbour: +neighbour, touches }))
     .sort((a, b) => b.touches - a.touches)
 }
+
+// Initialize sumText on script load
+function initializeSumText() {
+  if (typeof calculateAndDisplaySum === 'function') {
+    calculateAndDisplaySum()
+    console.log('sumText initialized from script.js')
+  }
+}
+
+// Wait for DOM to be ready, then initialize
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeSumText)
+} else {
+  // DOM is already ready
+  initializeSumText()
+}
+
+// Make function globally accessible for enhanced-script.js
+window.calculateAndDisplaySum = calculateAndDisplaySum

@@ -223,12 +223,18 @@ async function initializeEnhancedLotto() {
         const sumDiv = document.querySelector('.sumText')
         if (sumDiv) {
           // Always trigger initial calculation to show placeholder
-          if (typeof calculateAndDisplaySum === 'function') {
-            calculateAndDisplaySum()
-            console.log('sumText initialized with placeholder')
+          if (typeof window.calculateAndDisplaySum === 'function') {
+            window.calculateAndDisplaySum()
+            console.log(
+              'sumText initialized with placeholder from enhanced-script'
+            )
+          } else {
+            console.log('calculateAndDisplaySum function not found on window')
           }
+        } else {
+          console.log('sumText element not found')
         }
-      }, 100)
+      }, 500) // Increased timeout to ensure DOM and script are fully ready
     }
     document.body.appendChild(script)
   }

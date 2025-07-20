@@ -49,24 +49,10 @@ window.debugOfflineIndicator = function (show = true) {
 // Function to load data from Supabase or cache
 async function loadDataFromSupabase() {
   try {
-    // If offline, load from localStorage cache first
+    // If offline, skip Supabase loading
     if (!navigator.onLine) {
-      console.log('Offline mode: Loading cached lotto data')
-      const cachedData = localStorage.getItem('lotto-cached-data')
-      if (cachedData) {
-        const parsedData = JSON.parse(cachedData)
-        lottoMaxWinningNumbers2023 = parsedData
-        window.lottoMaxWinningNumbers2023 = lottoMaxWinningNumbers2023
-        console.log(
-          'Loaded',
-          lottoMaxWinningNumbers2023.length,
-          'draws from cache'
-        )
-
-        // Still try to load from data.js as fallback
-        loadLocalDataScript()
-        return
-      }
+      console.log('Offline mode: Skipping Supabase data loading')
+      return
     }
 
     // Temporarily disabled Supabase loading - always fall back to local data
@@ -99,8 +85,8 @@ async function loadDataFromSupabase() {
     // // Update the global variable that the original script uses
     // window.lottoMaxWinningNumbers2023 = lottoMaxWinningNumbers2023
   } catch (error) {
-    console.log('Loading local data instead of Supabase:', error.message)
-    loadLocalDataScript()
+    console.log('Supabase loading failed (this is normal):', error.message)
+    // Local data should already be loaded by loadDataScript()
   }
 }
 

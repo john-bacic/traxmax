@@ -1,4 +1,4 @@
-// Enhanced LOTTO script with Supabase integration
+// Enhanced LOTTO script with Supabase integration and offline support
 // This script loads after authentication and enhances the original functionality
 
 // Import Supabase client
@@ -9,14 +9,37 @@
 // const supabaseAnonKey = window.SUPABASE_ANON_KEY || ''
 // const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Check if we're in offline mode
+const isOfflineMode = window.IS_OFFLINE || !navigator.onLine
+
 // Load the original data first
 let lottoMaxWinningNumbers2023 = []
 
-// Function to load data from Supabase
+// Function to load data from Supabase or cache
 async function loadDataFromSupabase() {
   try {
-    // Temporarily disabled Supabase loading
-    throw new Error('Supabase temporarily disabled')
+    // If offline, load from localStorage cache first
+    if (isOfflineMode) {
+      console.log('Offline mode: Loading cached lotto data')
+      const cachedData = localStorage.getItem('lotto-cached-data')
+      if (cachedData) {
+        const parsedData = JSON.parse(cachedData)
+        lottoMaxWinningNumbers2023 = parsedData
+        window.lottoMaxWinningNumbers2023 = lottoMaxWinningNumbers2023
+        console.log(
+          'Loaded',
+          lottoMaxWinningNumbers2023.length,
+          'draws from cache'
+        )
+
+        // Still try to load from data.js as fallback
+        loadLocalDataScript()
+        return
+      }
+    }
+
+    // Temporarily disabled Supabase loading - always fall back to local data
+    throw new Error('Supabase temporarily disabled - using local data')
 
     // const { data, error } = await supabase
     //   .from('lotto_draws')
@@ -39,15 +62,41 @@ async function loadDataFromSupabase() {
     //   'draws from Supabase'
     // )
 
+    // // Cache the data for offline use
+    // localStorage.setItem('lotto-cached-data', JSON.stringify(lottoMaxWinningNumbers2023));
+
     // // Update the global variable that the original script uses
     // window.lottoMaxWinningNumbers2023 = lottoMaxWinningNumbers2023
   } catch (error) {
-    console.log('Loading local data instead of Supabase')
-    // Fall back to loading from local data.js
-    const script = document.createElement('script')
-    script.src = '/lotto-enhanced/data.js'
-    document.head.appendChild(script)
+    console.log('Loading local data instead of Supabase:', error.message)
+    loadLocalDataScript()
   }
+}
+
+// Function to load local data script
+function loadLocalDataScript() {
+  const script = document.createElement('script')
+  script.src = '/lotto-enhanced/data.js'
+  script.onload = () => {
+    // Cache the loaded data for offline use
+    if (window.lottoMaxWinningNumbers2023) {
+      localStorage.setItem(
+        'lotto-cached-data',
+        JSON.stringify(window.lottoMaxWinningNumbers2023)
+      )
+      console.log('Cached lotto data for offline use')
+    }
+  }
+  script.onerror = () => {
+    console.error('Failed to load lotto data script')
+    // Try to use any cached data as last resort
+    const cachedData = localStorage.getItem('lotto-cached-data')
+    if (cachedData) {
+      window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
+      console.log('Using cached data as fallback')
+    }
+  }
+  document.head.appendChild(script)
 }
 
 // Function to save user's saved numbers to Supabase

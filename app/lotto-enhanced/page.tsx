@@ -7,35 +7,89 @@ export default function LottoEnhanced() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [isOfflineReady, setIsOfflineReady] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
   useEffect(() => {
+    // Register service worker for offline functionality
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw-lotto-enhanced.js')
+        .then((registration) => {
+          console.log('Lotto Enhanced SW registered:', registration);
+          setIsOfflineReady(true);
+        })
+        .catch((error) => {
+          console.log('Lotto Enhanced SW registration failed:', error);
+        });
+    }
+
+    // Online/offline detection
+    setIsOnline(navigator.onLine);
+    
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
     // Check authentication
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        // For now, let's allow access without authentication
-        console.log('No user logged in - running in demo mode');
-        setUser({ email: 'demo@example.com' });
+      try {
+        if (!isOnline) {
+          // Offline mode - use cached user or demo mode
+          const cachedUser = localStorage.getItem('lotto-cached-user');
+          if (cachedUser) {
+            setUser(JSON.parse(cachedUser));
+          } else {
+            setUser({ email: 'offline@demo.com', offline: true });
+          }
+          setLoading(false);
+          return;
+        }
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          // For now, let's allow access without authentication
+          console.log('No user logged in - running in demo mode');
+          setUser({ email: 'demo@example.com' });
+          setLoading(false);
+          return;
+        }
+        
+        // Cache user for offline use
+        localStorage.setItem('lotto-cached-user', JSON.stringify(user));
+        setUser(user);
         setLoading(false);
-        return;
+      } catch (error) {
+        console.log('Auth check failed, using offline mode');
+        setUser({ email: 'offline@demo.com', offline: true });
+        setLoading(false);
       }
-      setUser(user);
-      setLoading(false);
     };
 
     checkUser();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setUser(session.user);
-      }
-    });
+    // Listen for auth changes (only when online)
+    if (isOnline) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          localStorage.setItem('lotto-cached-user', JSON.stringify(session.user));
+          setUser(session.user);
+        }
+      });
 
-    return () => subscription.unsubscribe();
-  }, []);
+      return () => subscription.unsubscribe();
+    }
+  }, [isOnline]);
 
   useEffect(() => {
     if (!loading && user) {
@@ -60,15 +114,25 @@ export default function LottoEnhanced() {
     // Pass Supabase credentials to the window object
     (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
     (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    (window as any).IS_OFFLINE = !isOnline;
     
     // We'll inject the original HTML and scripts here
     const container = document.getElementById('lotto-container');
     if (container) {
       // Load the original HTML structure
-      fetch('/lotto-enhanced/lotto.html')
-        .then(res => res.text())
-        .then(html => {
+      const loadLottoContent = async () => {
+        try {
+          const response = await fetch('/lotto-enhanced/lotto.html');
+          if (!response.ok && !isOnline) {
+            throw new Error('Offline - using cached content');
+          }
+          const html = await response.text();
           container.innerHTML = html;
+          
+          // Add offline indicator to the content
+          if (!isOnline) {
+            addOfflineIndicator(container);
+          }
           
           // Load the enhanced script that connects to Supabase
           const script = document.createElement('script');
@@ -76,41 +140,138 @@ export default function LottoEnhanced() {
           script.type = 'module';
           document.body.appendChild(script);
           
-          // Add scroll listener to container
-          let lastScrollTop = 0;
-          let ticking = false;
-          
-          const handleContainerScroll = () => {
-            if (!ticking) {
-              window.requestAnimationFrame(() => {
-                const scrollTop = container.scrollTop;
-                const topNav = container.querySelector('.topNav');
-                const hamburgerMenu = container.querySelector('#hamburger-menu');
-                
-                if (scrollTop > lastScrollTop && scrollTop > 100) {
-                  // Scrolling down - hide
-                  if (topNav) topNav.classList.add('hidden');
-                  if (hamburgerMenu) hamburgerMenu.classList.add('hidden');
-                } else {
-                  // Scrolling up - show
-                  if (topNav) topNav.classList.remove('hidden');
-                  if (hamburgerMenu) hamburgerMenu.classList.remove('hidden');
-                }
-                
-                lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-                ticking = false;
-              });
-              ticking = true;
-            }
-          };
-          
-          container.addEventListener('scroll', handleContainerScroll);
-        });
+          setupScrollHandlers(container);
+        } catch (error) {
+          console.log('Loading from cache or offline mode');
+          // Fallback to basic offline content
+          loadOfflineFallback(container);
+        }
+      };
+
+      loadLottoContent();
     }
   };
 
+  const addOfflineIndicator = (container: HTMLElement) => {
+    const offlineIndicator = document.createElement('div');
+    offlineIndicator.innerHTML = `
+      <div style="
+        position: fixed; 
+        top: 10px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        background: rgba(255, 193, 7, 0.95); 
+        color: #000; 
+        padding: 8px 16px; 
+        border-radius: 20px; 
+        font-size: 12px; 
+        font-weight: 600; 
+        z-index: 10000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      ">
+        🔌 OFFLINE MODE - Using cached data
+      </div>
+    `;
+    container.appendChild(offlineIndicator);
+  };
+
+  const loadOfflineFallback = (container: HTMLElement) => {
+    container.innerHTML = `
+      <div style="
+        min-height: 100vh; 
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); 
+        color: white; 
+        padding: 20px; 
+        text-align: center; 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">
+        <div style="max-width: 400px; margin: 50px auto;">
+          <h1 style="font-size: 2rem; margin-bottom: 20px;">🔌 Offline Mode</h1>
+          <p style="margin-bottom: 30px; opacity: 0.8;">
+            You're currently offline. The full lotto tracker requires an internet connection.
+          </p>
+          <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <h3>Available Offline:</h3>
+            <ul style="list-style: none; padding: 0;">
+              <li style="margin: 10px 0;">✓ Cached lottery data</li>
+              <li style="margin: 10px 0;">✓ Number frequency analysis</li>
+              <li style="margin: 10px 0;">✓ Saved number combinations</li>
+            </ul>
+          </div>
+          <a href="/pwa-test/offline-lotto" style="
+            display: inline-block; 
+            background: #FFD700; 
+            color: #000; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            margin: 10px;
+          ">
+            🎯 Use Offline Lotto Generator
+          </a>
+          <a href="/pwa-test" style="
+            display: inline-block; 
+            background: #007AFF; 
+            color: white; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-weight: 600; 
+            margin: 10px;
+          ">
+            📱 PWA Test Page
+          </a>
+        </div>
+      </div>
+    `;
+  };
+
+  const setupScrollHandlers = (container: HTMLElement) => {
+    // Add scroll listener to container
+    let lastScrollTop = 0;
+    let ticking = false;
+    
+    const handleContainerScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollTop = container.scrollTop;
+          const topNav = container.querySelector('.topNav');
+          const hamburgerMenu = container.querySelector('#hamburger-menu');
+          
+          if (scrollTop > lastScrollTop && scrollTop > 100) {
+            // Scrolling down - hide
+            if (topNav) topNav.classList.add('hidden');
+            if (hamburgerMenu) hamburgerMenu.classList.add('hidden');
+          } else {
+            // Scrolling up - show
+            if (topNav) topNav.classList.remove('hidden');
+            if (hamburgerMenu) hamburgerMenu.classList.remove('hidden');
+          }
+          
+          lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    container.addEventListener('scroll', handleContainerScroll);
+  };
+
   if (loading) {
-    return <div className="loader"></div>;
+    return (
+      <div className="loader" style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        background: '#000',
+        color: '#fff'
+      }}>
+        <div>Loading Lotto Enhanced...</div>
+      </div>
+    );
   }
 
   return (

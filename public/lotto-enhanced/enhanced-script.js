@@ -9,8 +9,8 @@
 // const supabaseAnonKey = window.SUPABASE_ANON_KEY || ''
 // const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Check if we're in offline mode
-const isOfflineMode = window.IS_OFFLINE || !navigator.onLine
+// Check if we're in offline mode (use browser's navigator.onLine only)
+const isOfflineMode = !navigator.onLine
 
 // Load the original data first
 let lottoMaxWinningNumbers2023 = []
@@ -29,7 +29,7 @@ function updateOfflineIndicator(isOffline) {
 
 // Function to handle online/offline status changes
 function handleConnectionChange() {
-  const isCurrentlyOffline = !navigator.onLine || window.IS_OFFLINE
+  const isCurrentlyOffline = !navigator.onLine
   updateOfflineIndicator(isCurrentlyOffline)
 
   if (isCurrentlyOffline) {
@@ -50,7 +50,7 @@ window.debugOfflineIndicator = function (show = true) {
 async function loadDataFromSupabase() {
   try {
     // If offline, load from localStorage cache first
-    if (isOfflineMode) {
+    if (!navigator.onLine) {
       console.log('Offline mode: Loading cached lotto data')
       const cachedData = localStorage.getItem('lotto-cached-data')
       if (cachedData) {
@@ -231,7 +231,7 @@ if (document.readyState === 'loading') {
 // Initialize offline indicator immediately when script loads
 function initOfflineIndicator() {
   // Initialize offline indicator - only show when actually offline
-  updateOfflineIndicator(!navigator.onLine || window.IS_OFFLINE)
+  updateOfflineIndicator(!navigator.onLine)
 
   // Listen for online/offline events
   window.addEventListener('online', handleConnectionChange)

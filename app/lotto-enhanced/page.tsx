@@ -130,9 +130,7 @@ export default function LottoEnhanced() {
           container.innerHTML = html;
           
           // Offline indicator is now handled by the SVG icon in topNav
-          
-          // Pass offline status to the embedded content
-          (window as any).IS_OFFLINE = !isOnline;
+          // Let the enhanced-script.js handle its own offline detection
           
           // Load the enhanced script that connects to Supabase
           const script = document.createElement('script');

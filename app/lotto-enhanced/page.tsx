@@ -10,6 +10,7 @@ export default function LottoEnhanced() {
   const [isOnline, setIsOnline] = useState(true);
   const [isOfflineReady, setIsOfflineReady] = useState(false);
   const [lottoLoaded, setLottoLoaded] = useState(false);
+  const [gitInfo, setGitInfo] = useState<{commit: string, branch: string}>({commit: 'loading...', branch: 'loading...'});
   const router = useRouter();
   const supabase = createClient();
 
@@ -111,6 +112,26 @@ export default function LottoEnhanced() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [menuOpen]);
+
+  // Fetch Git info when component mounts
+  useEffect(() => {
+    const fetchGitInfo = async () => {
+      try {
+        const response = await fetch('/api/git-info');
+        const result = await response.json();
+        if (result.success) {
+          setGitInfo(result.data);
+        } else {
+          setGitInfo({commit: 'unknown', branch: 'unknown'});
+        }
+      } catch (error) {
+        console.error('Failed to fetch Git info:', error);
+        setGitInfo({commit: 'error', branch: 'error'});
+      }
+    };
+
+    fetchGitInfo();
+  }, []);
 
   const loadOriginalLotto = () => {
     // Pass Supabase credentials to the window object
@@ -476,6 +497,23 @@ export default function LottoEnhanced() {
             >
               🎮 Play Game
             </button>
+            
+            {/* Git build info */}
+            <div style={{
+              marginTop: '15px',
+              paddingTop: '15px',
+              borderTop: '1px solid rgba(58, 58, 58, 0.3)',
+              fontSize: '11px',
+              color: 'rgba(188, 188, 188, 0.8)',
+              textAlign: 'center'
+            }}>
+              <div style={{ marginBottom: '4px' }}>
+                Build: <span style={{ fontFamily: 'monospace', color: '#CCFF00' }}>{gitInfo.commit}</span>
+              </div>
+              <div>
+                Branch: <span style={{ fontFamily: 'monospace', color: '#CCFF00' }}>{gitInfo.branch}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

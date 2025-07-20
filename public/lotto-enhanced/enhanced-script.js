@@ -92,54 +92,133 @@ async function loadDataFromSupabase() {
 
 // Function to load local data script (returns Promise)
 function loadDataScript() {
-  console.log('loadDataScript called')
+  console.log('🚀 loadDataScript called')
+  console.log('📊 Current state before loading:')
+  console.log(
+    '  - window.lottoMaxWinningNumbers2023 exists:',
+    !!window.lottoMaxWinningNumbers2023
+  )
+  console.log(
+    '  - window.lottoMaxWinningNumbers2023 length:',
+    window.lottoMaxWinningNumbers2023?.length
+  )
+  console.log(
+    '  - localStorage cache exists:',
+    !!localStorage.getItem('lotto-cached-data')
+  )
+
   return new Promise((resolve, reject) => {
     // Always reload data.js after navigation to ensure proper initialization
     // The early return was causing issues when navigating back from /game
     console.log(
-      'Loading fresh data.js script (always reload after navigation)...'
+      '🔄 Loading fresh data.js script (always reload after navigation)...'
     )
 
-    // Try to load from cache as fallback
-    const cachedData = localStorage.getItem('lotto-cached-data')
-    if (cachedData) {
-      try {
-        window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
-        console.log(
-          'Preloaded data from cache as fallback:',
-          window.lottoMaxWinningNumbers2023.length,
-          'draws'
-        )
-      } catch (error) {
-        console.log('Failed to parse cached data, will load fresh')
-      }
-    }
+    // Clear any existing data to ensure fresh load
+    console.log('🧹 Clearing existing window.lottoMaxWinningNumbers2023')
+    delete window.lottoMaxWinningNumbers2023
 
-    // Always load fresh data.js
-    console.log('Loading fresh data.js script...')
+    // Try to load from cache as fallback ONLY if network fails
+    const cachedData = localStorage.getItem('lotto-cached-data')
+    console.log(
+      '💾 Cache data available:',
+      !!cachedData,
+      cachedData ? `(${JSON.parse(cachedData).length} draws)` : ''
+    )
+
+    // Remove any existing data.js scripts first
+    const existingScripts = document.querySelectorAll(
+      'script[src*="/lotto-enhanced/data.js"]'
+    )
+    console.log('🗑️ Removing existing data.js scripts:', existingScripts.length)
+    existingScripts.forEach((s) => s.remove())
+
+    // Always load fresh data.js with cache busting
+    const timestamp = Date.now()
+    console.log('📥 Loading fresh data.js script with timestamp:', timestamp)
     const script = document.createElement('script')
-    script.src = '/lotto-enhanced/data.js'
+    script.src = `/lotto-enhanced/data.js?t=${timestamp}`
     script.onload = () => {
+      console.log('✅ data.js script onload fired')
+      console.log('📊 Post-load state:')
+      console.log(
+        '  - window.lottoMaxWinningNumbers2023 exists:',
+        !!window.lottoMaxWinningNumbers2023
+      )
+      console.log(
+        '  - window.lottoMaxWinningNumbers2023 length:',
+        window.lottoMaxWinningNumbers2023?.length
+      )
+      console.log(
+        '  - window.lottoMaxWinningNumbers2023 type:',
+        typeof window.lottoMaxWinningNumbers2023
+      )
+
       // Cache the loaded data for offline use
-      if (window.lottoMaxWinningNumbers2023) {
+      if (
+        window.lottoMaxWinningNumbers2023 &&
+        window.lottoMaxWinningNumbers2023.length > 0
+      ) {
         localStorage.setItem(
           'lotto-cached-data',
           JSON.stringify(window.lottoMaxWinningNumbers2023)
         )
         console.log(
-          'Loaded and cached fresh lotto data:',
+          '💾 Loaded and cached fresh lotto data:',
           window.lottoMaxWinningNumbers2023.length,
           'draws'
         )
         resolve()
       } else {
-        console.error('Data script loaded but no data found')
-        reject(new Error('No data found in script'))
+        console.error('❌ Data script loaded but no valid data found')
+        console.error(
+          'window.lottoMaxWinningNumbers2023:',
+          window.lottoMaxWinningNumbers2023
+        )
+
+        // Try fallback to cache
+        if (cachedData) {
+          try {
+            window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
+            console.log(
+              '🔄 Using cached data as fallback:',
+              window.lottoMaxWinningNumbers2023.length,
+              'draws'
+            )
+            resolve()
+          } catch (error) {
+            console.error('❌ Failed to parse cached data:', error)
+            reject(new Error('No data found in script and cache failed'))
+          }
+        } else {
+          reject(new Error('No data found in script and no cache available'))
+        }
       }
     }
-    script.onerror = () => {
-      console.error('Failed to load lotto data script')
-      reject(new Error('Failed to load data script'))
+    script.onerror = (error) => {
+      console.error('❌ Failed to load data.js script:', error)
+      console.error('Script src was:', script.src)
+
+      // Try fallback to cached data
+      if (cachedData) {
+        try {
+          window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
+          console.log(
+            '🔄 Using cached data after script load failure:',
+            window.lottoMaxWinningNumbers2023.length,
+            'draws'
+          )
+          resolve()
+        } catch (error) {
+          console.error(
+            '❌ Failed to parse cached data after script failure:',
+            error
+          )
+          reject(new Error('Failed to load data script and cache failed'))
+        }
+      } else {
+        reject(new Error('Failed to load data script and no cache available'))
+      }
     }
     document.head.appendChild(script)
   })

@@ -114,17 +114,23 @@ function loadDataScript() {
       '🔄 Loading fresh data.js script (always reload after navigation)...'
     )
 
-    // Clear any existing data to ensure fresh load
-    console.log('🧹 Clearing existing window.lottoMaxWinningNumbers2023')
-    delete window.lottoMaxWinningNumbers2023
-
-    // Try to load from cache as fallback ONLY if network fails
+    // Get cache first before clearing anything
     const cachedData = localStorage.getItem('lotto-cached-data')
     console.log(
       '💾 Cache data available:',
       !!cachedData,
       cachedData ? `(${JSON.parse(cachedData).length} draws)` : ''
     )
+
+    // Clear existing data only if we're likely navigating back (data already exists)
+    if (window.lottoMaxWinningNumbers2023) {
+      console.log(
+        '🧹 Clearing existing window.lottoMaxWinningNumbers2023 (likely navigation)'
+      )
+      delete window.lottoMaxWinningNumbers2023
+    } else {
+      console.log('🆕 No existing data - fresh load or offline mode')
+    }
 
     // Remove any existing data.js scripts first
     const existingScripts = document.querySelectorAll(

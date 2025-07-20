@@ -19,7 +19,11 @@ let lottoMaxWinningNumbers2023 = []
 function updateOfflineIndicator(isOffline) {
   const offlineIndicator = document.getElementById('offline-indicator')
   if (offlineIndicator) {
-    offlineIndicator.style.display = isOffline ? 'block' : 'none'
+    if (isOffline) {
+      offlineIndicator.classList.add('visible')
+    } else {
+      offlineIndicator.classList.remove('visible')
+    }
   }
 }
 
@@ -33,6 +37,13 @@ function handleConnectionChange() {
   } else {
     console.log('App is now online - hiding offline indicator')
   }
+}
+
+// Debug function to manually test offline indicator (temporary)
+window.debugOfflineIndicator = function (show = true) {
+  console.log(`Debug: ${show ? 'Showing' : 'Hiding'} offline indicator`)
+  updateOfflineIndicator(show)
+  return show
 }
 
 // Function to load data from Supabase or cache

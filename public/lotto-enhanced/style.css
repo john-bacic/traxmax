@@ -870,10 +870,11 @@ body.lotto-active #linkList {
 
 /* Offline indicator styles */
 .offline-indicator {
-  display: none;
+  display: flex;
+  visibility: hidden;
   /* margin-right: 50px; */
   cursor: default;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
@@ -883,6 +884,10 @@ body.lotto-active #linkList {
   right: 60px; 
   top: 50%; 
   transform: translateY(-50%);
+}
+
+.offline-indicator.visible {
+  visibility: visible;
 }
 
 .offline-indicator svg {

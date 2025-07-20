@@ -2035,10 +2035,16 @@ function calculateAndDisplaySum() {
       sumDiv.textContent = `sum: ${sum} :${numerologySum}`
     }
   } else {
-    // If there are less than two numbers, clear the text
+    // If there are less than two numbers, show placeholder or ready state
     const sumDiv = document.querySelector('.sumText')
     if (sumDiv) {
-      sumDiv.textContent = ''
+      if (combinedArray.length === 0) {
+        sumDiv.textContent = 'sum: -- :--' // Show placeholder when no numbers selected
+      } else if (combinedArray.length === 1) {
+        const sum = combinedArray[0]
+        const numerologySum = reduceToSingleDigit(sum)
+        sumDiv.textContent = `sum: ${sum} :${numerologySum}` // Show single number sum
+      }
     }
   }
 }

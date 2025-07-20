@@ -218,13 +218,14 @@ async function initializeEnhancedLotto() {
     }
     script.onload = () => {
       console.log('Original script loaded successfully')
-      // Ensure sumText is visible after script loads
+      // Initialize sumText with placeholder immediately after script loads
       setTimeout(() => {
         const sumDiv = document.querySelector('.sumText')
-        if (sumDiv && sumDiv.textContent === '') {
-          // Try to trigger initial calculation if sumText is empty
+        if (sumDiv) {
+          // Always trigger initial calculation to show placeholder
           if (typeof calculateAndDisplaySum === 'function') {
             calculateAndDisplaySum()
+            console.log('sumText initialized with placeholder')
           }
         }
       }, 100)

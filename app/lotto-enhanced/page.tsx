@@ -134,6 +134,13 @@ export default function LottoEnhanced() {
   }, []);
 
   const loadOriginalLotto = () => {
+    console.log('🔄 loadOriginalLotto called');
+    console.log('📊 Current DOM state:');
+    console.log('  - Enhanced scripts in DOM:', document.querySelectorAll('script[src*="enhanced-script.js"]').length);
+    console.log('  - Data scripts in DOM:', document.querySelectorAll('script[src*="data.js"]').length);
+    console.log('  - window.lottoMaxWinningNumbers2023 exists:', !!(window as any).lottoMaxWinningNumbers2023);
+    console.log('  - localStorage cache exists:', !!localStorage.getItem('lotto-cached-data'));
+    
     // Pass Supabase credentials to the window object
     (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
     (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -175,6 +182,12 @@ export default function LottoEnhanced() {
           const script = document.createElement('script');
           script.src = `/lotto-enhanced/enhanced-script.js?t=${Date.now()}`;
           script.type = 'module';
+          script.onload = () => {
+            console.log('✅ Enhanced script loaded successfully');
+          };
+          script.onerror = (error) => {
+            console.error('❌ Enhanced script failed to load:', error);
+          };
           document.body.appendChild(script);
           
           setupScrollHandlers(container);

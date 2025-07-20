@@ -275,7 +275,7 @@ export default function GamePage() {
       <audio id="above6" src="https://raw.githubusercontent.com/john-bacic/max-code/main/GAME_MENU_SCORE_SFX001143_trimmed.wav" preload="auto"></audio>
 
       <div id="gameGrid">
-        <Link href="/">
+        <Link href="/lotto-enhanced">
           <button className="closeBTN">
             <svg width="11" height="10" viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path fillRule="evenodd" clipRule="evenodd" d="M1.51478 0.485215C1.12426 0.875739 1.12426 1.5089 1.51478 1.89943L4.3934 4.77805L1.10045 8.071C0.709925 8.46153 0.709925 9.09469 1.10045 9.48522C1.49097 9.87574 2.12414 9.87574 2.51466 9.48522L5.80762 6.19226L9.29296 9.6776C9.68348 10.0681 10.3166 10.0681 10.7072 9.6776C11.0977 9.28708 11.0977 8.65391 10.7072 8.26339L7.22183 4.77805L10.2928 1.70704C10.6834 1.31652 10.6834 0.683352 10.2928 0.292827C9.90231 -0.097697 9.26915 -0.0976973 8.87862 0.292827L5.80762 3.36383L2.929 0.485215C2.53847 0.0946909 1.90531 0.0946909 1.51478 0.485215Z" fill="#CCFF00"/>

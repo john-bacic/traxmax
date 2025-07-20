@@ -9,6 +9,7 @@ export default function LottoEnhanced() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [isOfflineReady, setIsOfflineReady] = useState(false);
+  const [lottoLoaded, setLottoLoaded] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -79,7 +80,7 @@ export default function LottoEnhanced() {
     checkUser();
 
     // Listen for auth changes (only when online)
-    if (isOnline) {
+    if (navigator.onLine) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session) {
           localStorage.setItem('lotto-cached-user', JSON.stringify(session.user));
@@ -89,14 +90,15 @@ export default function LottoEnhanced() {
 
       return () => subscription.unsubscribe();
     }
-  }, [isOnline]);
+  }, []); // Remove isOnline dependency to prevent re-renders on offline/online
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && !lottoLoaded) {
       // Load the original LOTTO 2_1 scripts after authentication
       loadOriginalLotto();
+      setLottoLoaded(true);
     }
-  }, [loading, user]);
+  }, [loading, user, lottoLoaded]);
 
   useEffect(() => {
     // Listen for messages from the iframe
@@ -114,7 +116,6 @@ export default function LottoEnhanced() {
     // Pass Supabase credentials to the window object
     (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
     (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    (window as any).IS_OFFLINE = !isOnline;
     
     // We'll inject the original HTML and scripts here
     const container = document.getElementById('lotto-container');
@@ -123,7 +124,7 @@ export default function LottoEnhanced() {
       const loadLottoContent = async () => {
         try {
           const response = await fetch('/lotto-enhanced/lotto.html');
-          if (!response.ok && !isOnline) {
+          if (!response.ok && !navigator.onLine) {
             throw new Error('Offline - using cached content');
           }
           const html = await response.text();
@@ -132,11 +133,13 @@ export default function LottoEnhanced() {
           // Offline indicator is now handled by the SVG icon in topNav
           // Let the enhanced-script.js handle its own offline detection
           
-          // Load the enhanced script that connects to Supabase
-          const script = document.createElement('script');
-          script.src = '/lotto-enhanced/enhanced-script.js';
-          script.type = 'module';
-          document.body.appendChild(script);
+          // Load the enhanced script that connects to Supabase (only if not already loaded)
+          if (!document.querySelector('script[src="/lotto-enhanced/enhanced-script.js"]')) {
+            const script = document.createElement('script');
+            script.src = '/lotto-enhanced/enhanced-script.js';
+            script.type = 'module';
+            document.body.appendChild(script);
+          }
           
           setupScrollHandlers(container);
         } catch (error) {

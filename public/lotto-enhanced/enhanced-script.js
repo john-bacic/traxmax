@@ -364,6 +364,18 @@ async function initializeEnhancedLotto() {
 
 // Start initialization
 console.log('Starting enhanced lotto initialization...')
+
+// IMMEDIATE fallback: Hide loader if it's still visible after 2 seconds
+setTimeout(() => {
+  const loader = document.getElementById('dataLoader')
+  if (loader && loader.style.display !== 'none') {
+    console.log('🔴 IMMEDIATE FALLBACK: Force hiding stuck loader')
+    loader.style.display = 'none'
+    loader.style.visibility = 'hidden'
+    loader.classList.add('hidden')
+  }
+}, 2000)
+
 initializeEnhancedLotto().catch((error) => {
   console.error('Failed to initialize enhanced lotto:', error)
   // Make sure to hide loader on any error

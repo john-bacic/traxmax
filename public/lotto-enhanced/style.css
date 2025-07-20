@@ -953,6 +953,13 @@ body.lotto-active #linkList {
   align-items: center;
   z-index: 10000;
   color: white;
+  /* CSS fallback: auto-hide after 4 seconds if JavaScript fails */
+  animation: auto-hide 4s forwards;
+}
+
+@keyframes auto-hide {
+  0%, 75% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 
 .data-loader.hidden {

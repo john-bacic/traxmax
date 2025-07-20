@@ -2039,7 +2039,7 @@ function calculateAndDisplaySum() {
     const sumDiv = document.querySelector('.sumText')
     if (sumDiv) {
       if (combinedArray.length === 0) {
-        sumDiv.textContent = 'sum: -- :--' // Show placeholder when no numbers selected
+        sumDiv.textContent = '' // Show placeholder when no numbers selected
       } else if (combinedArray.length === 1) {
         const sum = combinedArray[0]
         const numerologySum = reduceToSingleDigit(sum)

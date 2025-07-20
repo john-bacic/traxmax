@@ -210,23 +210,46 @@ async function initializeEnhancedLotto() {
   const script = document.createElement('script')
   script.type = 'module'
   script.src = '/lotto-enhanced/script.js'
+  script.onerror = () => {
+    console.log(
+      'Original script failed to load, continuing with enhanced features only'
+    )
+  }
   document.body.appendChild(script)
 }
 
 // Start initialization
 initializeEnhancedLotto()
 
-// Add sticky behavior after DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  // Add lotto-active class to body
-  document.body.classList.add('lotto-active')
+// Initialize offline indicator immediately
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initOfflineIndicator)
+} else {
+  initOfflineIndicator()
+}
 
+// Initialize offline indicator immediately when script loads
+function initOfflineIndicator() {
   // Initialize offline indicator - only show when actually offline
   updateOfflineIndicator(!navigator.onLine || window.IS_OFFLINE)
 
   // Listen for online/offline events
   window.addEventListener('online', handleConnectionChange)
   window.addEventListener('offline', handleConnectionChange)
+
+  console.log(
+    'Offline indicator initialized, current status:',
+    !navigator.onLine ? 'OFFLINE' : 'ONLINE'
+  )
+}
+
+// Add sticky behavior after DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  // Add lotto-active class to body
+  document.body.classList.add('lotto-active')
+
+  // Initialize offline indicator
+  initOfflineIndicator()
 
   // Add sticky scroll detection
   setTimeout(() => {

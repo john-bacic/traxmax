@@ -67,8 +67,8 @@ function triggerLoad() {
     greyedCascadeButton()
 
     // ZAP
-    // Only send analytics once
-    if (!window.analyticsLoaded) {
+    // Only send analytics once and when online
+    if (!window.analyticsLoaded && navigator.onLine) {
       window.analyticsLoaded = true
 
       fetch('https://ipapi.co/json/')
@@ -77,6 +77,14 @@ function triggerLoad() {
             throw new Error('Network response was not ok')
           }
           return response.json()
+        })
+        .catch((error) => {
+          console.log(
+            'Location service unavailable, continuing without analytics:',
+            error.message
+          )
+          // Return a default object to continue execution
+          return { country: 'Unknown', city: 'Unknown' }
         })
         .then((data) => {
           const formData = new FormData()

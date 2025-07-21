@@ -422,12 +422,53 @@ if (!setupSaveOverride()) {
 }
 
 // Override delete function if it exists
-if (window.deleteCombination) {
-  const originalDelete = window.deleteCombination
-  window.deleteCombination = function (index) {
-    console.log('🔄 Original delete called with index:', index)
-    deleteCombinationByIndex(index)
+function setupDeleteOverride() {
+  if (window.removeFromLocalStorage) {
+    console.log('✅ Found window.removeFromLocalStorage, setting up override')
+    const originalRemove = window.removeFromLocalStorage
+    window.removeFromLocalStorage = function (sequenceToRemove) {
+      console.log('🚨 ENHANCED DELETE OVERRIDE CALLED! 🚨')
+      console.log('🗑️ Original delete called with:', sequenceToRemove)
+
+      // Find the index of this sequence in localStorage
+      const sequences = getNumberSequences()
+      const indexToDelete = sequences.findIndex(
+        (seq) =>
+          JSON.stringify(seq.sort((a, b) => a - b)) ===
+          JSON.stringify(sequenceToRemove.sort((a, b) => a - b))
+      )
+
+      if (indexToDelete !== -1) {
+        console.log(`🎯 Found sequence at index ${indexToDelete}, deleting...`)
+        deleteCombinationByIndex(indexToDelete)
+      } else {
+        console.log('❌ Sequence not found in localStorage')
+        // Call original function as fallback
+        originalRemove(sequenceToRemove)
+      }
+    }
+    return true
+  } else {
+    console.log('⏳ window.removeFromLocalStorage not ready yet')
+    return false
   }
+}
+
+// Try to setup delete override with retry
+if (!setupDeleteOverride()) {
+  const deleteRetryInterval = setInterval(() => {
+    if (setupDeleteOverride()) {
+      clearInterval(deleteRetryInterval)
+    }
+  }, 100) // Check every 100ms
+
+  // Stop trying after 10 seconds
+  setTimeout(() => {
+    clearInterval(deleteRetryInterval)
+    console.log(
+      '⚠️ Failed to find window.removeFromLocalStorage after 10 seconds'
+    )
+  }, 10000)
 }
 
 // Override clear function if it exists
@@ -473,6 +514,7 @@ console.log('💡 Supabase will only update when you save or delete numbers')
 // Debug what functions are available
 console.log('🔍 Available window functions:', {
   saveToLocalStorage: typeof window.saveToLocalStorage,
+  removeFromLocalStorage: typeof window.removeFromLocalStorage,
   populateSavedNumbersFromLocalStorage:
     typeof window.populateSavedNumbersFromLocalStorage,
   displaySavedNumbers: typeof window.displaySavedNumbers,

@@ -174,18 +174,20 @@ export const syncLocalToSupabase = async () => {
         continue
       }
 
-      const sortedNumbers = [...numbers].sort((a, b) => a - b)
+      // Convert to integers to prevent string issues
+      const intNumbers = numbers.map((n) => parseInt(n, 10))
+      const sortedNumbers = [...intNumbers].sort((a, b) => a - b)
       const numberKey = JSON.stringify(sortedNumbers)
       console.log(`🔍 Checking combination ${i + 1}: ${numberKey}`)
 
       if (!existingNumbers.includes(numberKey)) {
-        console.log(`💾 Syncing NEW combination ${i + 1}:`, numbers)
-        await saveCombination(numbers)
+        console.log(`💾 Syncing NEW combination ${i + 1}:`, intNumbers)
+        await saveCombination(intNumbers)
         syncedCount++
       } else {
         console.log(
           `⏭️ Combination ${i + 1} already exists, skipping:`,
-          numbers
+          intNumbers
         )
       }
     }

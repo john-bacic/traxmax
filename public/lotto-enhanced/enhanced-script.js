@@ -49,22 +49,26 @@ function setNumberSequences(sequences) {
 async function saveNewCombination(numbers) {
   console.log('🎯 Saving new combination:', numbers)
 
-  // Validate input
+  // Validate input and ensure numbers are integers
   if (!Array.isArray(numbers) || numbers.length !== 7) {
     console.error('❌ Invalid numbers for saving:', numbers)
     return false
   }
 
+  // Convert all values to integers to prevent string storage
+  const intNumbers = numbers.map((n) => parseInt(n, 10))
+  console.log('🔢 Converted to integers:', intNumbers)
+
   try {
     // Add to local numberSequences
     const sequences = getNumberSequences()
-    sequences.push(numbers)
+    sequences.push(intNumbers)
     setNumberSequences(sequences)
 
     // Save to Supabase if online
     if (navigator.onLine) {
       try {
-        await saveCombination(numbers)
+        await saveCombination(intNumbers)
         console.log('✅ Saved to Supabase')
       } catch (supabaseError) {
         console.error('❌ Supabase save failed:', supabaseError)
@@ -226,16 +230,18 @@ if (window.saveToLocalStorage) {
   window.saveToLocalStorage = function (sequence) {
     console.log('🔄 Original save called with:', sequence)
 
-    // Parse the sequence
+    // Parse the sequence and ensure integers
     let numbers
     if (Array.isArray(sequence)) {
-      numbers = sequence
+      numbers = sequence.map((n) => parseInt(n, 10))
     } else if (typeof sequence === 'string') {
-      numbers = sequence.split('-').map(Number)
+      numbers = sequence.split('-').map((n) => parseInt(n, 10))
     } else {
       console.error('❌ Unknown sequence format:', sequence)
       return
     }
+
+    console.log('🔢 Parsed numbers as integers:', numbers)
 
     // Save using our new function
     saveNewCombination(numbers)

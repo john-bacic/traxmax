@@ -190,7 +190,11 @@ export default function LottoEnhanced() {
           // Offline indicator is now handled by the SVG icon in topNav
           // Let the enhanced-script.js handle its own offline detection
           
-          // Clean up any existing enhanced scripts to ensure fresh load after navigation
+          // Clean up any existing scripts to ensure fresh load after navigation
+          const existingMainScripts = document.querySelectorAll('script[src*="/lotto-enhanced/script.js"]');
+          console.log('🧹 Removing existing script.js instances:', existingMainScripts.length);
+          existingMainScripts.forEach(script => script.remove());
+          
           const existingEnhancedScripts = document.querySelectorAll('script[src*="/lotto-enhanced/enhanced-script.js"]');
           console.log('🧹 Removing existing enhanced-script.js instances:', existingEnhancedScripts.length);
           existingEnhancedScripts.forEach(script => script.remove());
@@ -206,18 +210,31 @@ export default function LottoEnhanced() {
             delete (window as any).lottoMaxWinningNumbers2023;
           }
           
-          // Always load fresh enhanced script for proper initialization
-          console.log('📥 Loading fresh enhanced-script.js');
-          const script = document.createElement('script');
-          script.src = `/lotto-enhanced/enhanced-script.js?t=${Date.now()}`;
-          script.type = 'module';
-          script.onload = () => {
-            console.log('✅ Enhanced script loaded successfully');
+          // Load main script.js first with cache busting
+          console.log('📥 Loading fresh script.js');
+          const mainScript = document.createElement('script');
+          mainScript.src = `/lotto-enhanced/script.js?t=${Date.now()}`;
+          mainScript.type = 'module';
+          mainScript.onload = () => {
+            console.log('✅ Main script loaded successfully');
+            
+            // Then load enhanced script after main script is ready
+            console.log('📥 Loading fresh enhanced-script.js');
+            const enhancedScript = document.createElement('script');
+            enhancedScript.src = `/lotto-enhanced/enhanced-script.js?t=${Date.now()}`;
+            enhancedScript.type = 'module';
+            enhancedScript.onload = () => {
+              console.log('✅ Enhanced script loaded successfully');
+            };
+            enhancedScript.onerror = (error) => {
+              console.error('❌ Enhanced script failed to load:', error);
+            };
+            document.body.appendChild(enhancedScript);
           };
-          script.onerror = (error) => {
-            console.error('❌ Enhanced script failed to load:', error);
+          mainScript.onerror = (error) => {
+            console.error('❌ Main script failed to load:', error);
           };
-          document.body.appendChild(script);
+          document.body.appendChild(mainScript);
           
           setupScrollHandlers(container);
         } catch (error) {

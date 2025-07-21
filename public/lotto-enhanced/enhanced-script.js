@@ -309,53 +309,58 @@ function loadDataScript() {
 
 // Function to save user's saved numbers to Supabase
 async function saveToSupabase(numbers) {
-  // Temporarily disabled
-  return
-  // try {
-  //   const {
-  //     data: { user },
-  //   } = await supabase.auth.getUser()
-  //   if (!user) return
+  try {
+    // Import the service dynamically
+    const { saveCombination, initializeUser } = await import(
+      '/lib/supabase/saved-combinations-service.js'
+    )
 
-  //   const { error } = await supabase.from('user_saved_numbers').insert({
-  //     user_id: user.id,
-  //     numbers: numbers,
-  //     created_at: new Date().toISOString(),
-  //   })
+    // Ensure user is initialized (anonymous auth)
+    await initializeUser()
 
-  //   if (error) throw error
-  //   console.log('Saved numbers to Supabase')
-  // } catch (error) {
-  //   console.error('Error saving to Supabase:', error)
-  // }
+    // Save the combination
+    await saveCombination(numbers)
+    console.log('✅ Saved numbers to Supabase:', numbers)
+
+    // Also update the local display
+    await loadUserSavedNumbers()
+  } catch (error) {
+    console.error('❌ Error saving to Supabase:', error)
+    // Continue with localStorage fallback (original function already called)
+  }
 }
 
 // Function to load user's saved numbers from Supabase
 async function loadUserSavedNumbers() {
-  // Temporarily disabled
-  return
-  // try {
-  //   const {
-  //     data: { user },
-  //   } = await supabase.auth.getUser()
-  //   if (!user) return
+  try {
+    // Import the service dynamically
+    const { getUserCombinations, initializeUser, syncLocalToSupabase } =
+      await import('/lib/supabase/saved-combinations-service.js')
 
-  //   const { data, error } = await supabase
-  //     .from('user_saved_numbers')
-  //     .select('*')
-  //     .eq('user_id', user.id)
-  //     .order('created_at', { ascending: false })
+    // Ensure user is initialized (anonymous auth)
+    await initializeUser()
 
-  //   if (error) throw error
+    // Sync any local data first
+    await syncLocalToSupabase()
 
-  //   // Update localStorage with Supabase data
-  //   if (data && data.length > 0) {
-  //     const savedNumbers = data.map((item) => item.numbers)
-  //     localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
-  //   }
-  // } catch (error) {
-  //   console.error('Error loading saved numbers from Supabase:', error)
-  // }
+    // Load from Supabase
+    const combinations = await getUserCombinations()
+    console.log('✅ Loaded', combinations.length, 'combinations from Supabase')
+
+    // Update localStorage with Supabase data (convert to old format for compatibility)
+    if (combinations && combinations.length > 0) {
+      const savedNumbers = combinations.map((item) => item.numbers)
+      localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
+
+      // Update the UI if the displaySavedNumbers function exists
+      if (window.displaySavedNumbers) {
+        window.displaySavedNumbers()
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error loading saved numbers from Supabase:', error)
+    // Fallback to existing localStorage data
+  }
 }
 
 // Override the original save function to also save to Supabase
@@ -367,6 +372,51 @@ window.saveToLocalStorage = function (sequence) {
   }
   // Also save to Supabase
   saveToSupabase(sequence.split('-').map(Number))
+}
+
+// Add delete function for individual combinations
+window.deleteSavedCombination = async function (index) {
+  try {
+    // Import the service dynamically
+    const { getUserCombinations, deleteCombination } = await import(
+      '/lib/supabase/saved-combinations-service.js'
+    )
+
+    // Get current combinations to find the one to delete
+    const combinations = await getUserCombinations()
+    if (index >= 0 && index < combinations.length) {
+      const combinationToDelete = combinations[index]
+
+      // Delete from Supabase
+      await deleteCombination(combinationToDelete.id)
+
+      // Also remove from localStorage for consistency
+      const savedNumbers = JSON.parse(
+        localStorage.getItem('savedNumbers') || '[]'
+      )
+      savedNumbers.splice(index, 1)
+      localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
+
+      // Update the UI
+      if (window.displaySavedNumbers) {
+        window.displaySavedNumbers()
+      }
+
+      console.log('✅ Combination deleted successfully')
+    }
+  } catch (error) {
+    console.error('❌ Error deleting combination:', error)
+    // Fallback to localStorage only
+    const savedNumbers = JSON.parse(
+      localStorage.getItem('savedNumbers') || '[]'
+    )
+    savedNumbers.splice(index, 1)
+    localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
+
+    if (window.displaySavedNumbers) {
+      window.displaySavedNumbers()
+    }
+  }
 }
 
 // Show loading spinner

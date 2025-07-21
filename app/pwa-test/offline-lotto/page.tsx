@@ -1,19 +1,76 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { 
+  saveCombination as saveToSupabase, 
+  getUserCombinations, 
+  deleteCombination as deleteFromSupabase,
+  syncLocalToSupabase,
+  type SavedCombination 
+} from '../../../lib/supabase/saved-combinations-service';
 
 export default function OfflineLotto() {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [manuallySelected, setManuallySelected] = useState<number[]>([]);
-  const [savedCombinations, setSavedCombinations] = useState<number[][]>([]);
+  const [savedCombinations, setSavedCombinations] = useState<SavedCombination[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    // Load saved combinations from localStorage
-    const saved = localStorage.getItem('offline-lotto-combinations');
-    if (saved) {
-      setSavedCombinations(JSON.parse(saved));
-    }
+    loadCombinations();
+    checkOnlineStatus();
   }, []);
+
+  const checkOnlineStatus = () => {
+    setIsOnline(navigator.onLine);
+    window.addEventListener('online', () => setIsOnline(true));
+    window.addEventListener('offline', () => setIsOnline(false));
+  };
+
+  const loadCombinations = async () => {
+    try {
+      setSyncing(true);
+      
+      if (isOnline) {
+        // Try to sync local data first
+        await syncLocalToSupabase();
+        
+        // Load from Supabase
+        const combinations = await getUserCombinations();
+        setSavedCombinations(combinations);
+      } else {
+        // Load from localStorage as fallback
+        const saved = localStorage.getItem('offline-lotto-combinations');
+        if (saved) {
+          const localCombinations: number[][] = JSON.parse(saved);
+          // Convert to SavedCombination format for display
+          const convertedCombinations: SavedCombination[] = localCombinations.map((numbers, index) => ({
+            id: `local_${index}`,
+            user_id: 'local',
+            numbers,
+            created_at: new Date().toISOString(),
+          }));
+          setSavedCombinations(convertedCombinations);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading combinations:', error);
+      // Fallback to localStorage
+      const saved = localStorage.getItem('offline-lotto-combinations');
+      if (saved) {
+        const localCombinations: number[][] = JSON.parse(saved);
+        const convertedCombinations: SavedCombination[] = localCombinations.map((numbers, index) => ({
+          id: `local_${index}`,
+          user_id: 'local',
+          numbers,
+          created_at: new Date().toISOString(),
+        }));
+        setSavedCombinations(convertedCombinations);
+      }
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const generateRandomNumbers = () => {
     setIsGenerating(true);
@@ -63,11 +120,50 @@ export default function OfflineLotto() {
     }
   };
 
-  const saveCombination = () => {
-    if (selectedNumbers.length === 7) {
-      const newCombinations = [...savedCombinations, selectedNumbers];
-      setSavedCombinations(newCombinations);
-      localStorage.setItem('offline-lotto-combinations', JSON.stringify(newCombinations));
+  const saveCombination = async () => {
+    if (selectedNumbers.length !== 7) return;
+    
+    try {
+      setSyncing(true);
+      
+      if (isOnline) {
+        // Save to Supabase
+        await saveToSupabase(selectedNumbers);
+        // Reload combinations
+        await loadCombinations();
+      } else {
+        // Save locally as fallback
+        const saved = localStorage.getItem('offline-lotto-combinations');
+        const localCombinations: number[][] = saved ? JSON.parse(saved) : [];
+        localCombinations.push(selectedNumbers);
+        localStorage.setItem('offline-lotto-combinations', JSON.stringify(localCombinations));
+        
+        // Update state with new local combination
+        const newCombination: SavedCombination = {
+          id: `local_${Date.now()}`,
+          user_id: 'local',
+          numbers: selectedNumbers,
+          created_at: new Date().toISOString(),
+        };
+        setSavedCombinations([newCombination, ...savedCombinations]);
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      // Fallback to localStorage
+      const saved = localStorage.getItem('offline-lotto-combinations');
+      const localCombinations: number[][] = saved ? JSON.parse(saved) : [];
+      localCombinations.push(selectedNumbers);
+      localStorage.setItem('offline-lotto-combinations', JSON.stringify(localCombinations));
+      
+      const newCombination: SavedCombination = {
+        id: `local_${Date.now()}`,
+        user_id: 'local',
+        numbers: selectedNumbers,
+        created_at: new Date().toISOString(),
+      };
+      setSavedCombinations([newCombination, ...savedCombinations]);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -76,15 +172,61 @@ export default function OfflineLotto() {
     setManuallySelected([]);
   };
 
-  const clearSaved = () => {
-    setSavedCombinations([]);
-    localStorage.removeItem('offline-lotto-combinations');
+  const clearSaved = async () => {
+    try {
+      setSyncing(true);
+      
+      if (isOnline) {
+        // Delete all combinations from Supabase
+        for (const combination of savedCombinations) {
+          if (!combination.id.startsWith('local_')) {
+            await deleteFromSupabase(combination.id);
+          }
+        }
+      }
+      
+      // Clear localStorage
+      localStorage.removeItem('offline-lotto-combinations');
+      setSavedCombinations([]);
+    } catch (error) {
+      console.error('Error clearing saved combinations:', error);
+      // Fallback to local clear
+      localStorage.removeItem('offline-lotto-combinations');
+      setSavedCombinations([]);
+    } finally {
+      setSyncing(false);
+    }
   };
 
-  const deleteSavedCombination = (index: number) => {
-    const newCombinations = savedCombinations.filter((_, i) => i !== index);
-    setSavedCombinations(newCombinations);
-    localStorage.setItem('offline-lotto-combinations', JSON.stringify(newCombinations));
+  const deleteSavedCombination = async (id: string) => {
+    try {
+      setSyncing(true);
+      
+      if (isOnline && !id.startsWith('local_')) {
+        // Delete from Supabase
+        await deleteFromSupabase(id);
+      } else {
+        // Delete from localStorage for local items
+        const saved = localStorage.getItem('offline-lotto-combinations');
+        if (saved) {
+          const localCombinations: number[][] = JSON.parse(saved);
+          const index = parseInt(id.replace('local_', ''));
+          if (index >= 0 && index < localCombinations.length) {
+            localCombinations.splice(index, 1);
+            localStorage.setItem('offline-lotto-combinations', JSON.stringify(localCombinations));
+          }
+        }
+      }
+      
+      // Update state
+      setSavedCombinations(savedCombinations.filter(c => c.id !== id));
+    } catch (error) {
+      console.error('Error deleting combination:', error);
+      // Fallback to local removal
+      setSavedCombinations(savedCombinations.filter(c => c.id !== id));
+    } finally {
+      setSyncing(false);
+    }
   };
 
   return (
@@ -441,12 +583,12 @@ export default function OfflineLotto() {
         </div>
         
         <div className="control-buttons">
-          <button 
+                      <button 
             className="btn btn-secondary" 
             onClick={saveCombination}
-            disabled={selectedNumbers.length !== 7}
+            disabled={selectedNumbers.length !== 7 || syncing}
           >
-             Save Combination
+              {syncing ? 'Saving...' : 'Save Combination'} {!isOnline && '(Offline)'}
           </button>
           
           <button 
@@ -460,24 +602,25 @@ export default function OfflineLotto() {
         {savedCombinations.length > 0 && (
           <div className="saved-combinations">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h3> Saved Combinations ({savedCombinations.length})</h3>
-              <button className="btn btn-secondary" onClick={clearSaved} style={{ padding: '8px 15px', minWidth: 'auto' }}>
-                Clear Saved
+              <h3> Saved Combinations ({savedCombinations.length}) {!isOnline && '(Offline)'}</h3>
+              <button className="btn btn-secondary" onClick={clearSaved} style={{ padding: '8px 15px', minWidth: 'auto' }} disabled={syncing}>
+                {syncing ? 'Syncing...' : 'Clear Saved'}
               </button>
             </div>
             
             {savedCombinations.map((combination, index) => (
-              <div key={index} className="saved-item">
+              <div key={combination.id} className="saved-item">
                 <span style={{ minWidth: 30 }}>#{index + 1}</span>
                 <div className="saved-numbers">
-                  {combination.map(num => (
+                  {combination.numbers.map(num => (
                     <div key={num} className="saved-number">{num}</div>
                   ))}
                 </div>
                 <button 
                   className="delete-btn"
-                  onClick={() => deleteSavedCombination(index)}
+                  onClick={() => deleteSavedCombination(combination.id)}
                   title="Delete this combination"
+                  disabled={syncing}
                 >
                   ×
                 </button>
@@ -486,8 +629,23 @@ export default function OfflineLotto() {
           </div>
         )}
 
-        <div style={{ textAlign: 'center', marginTop: 40 }}>
-                      <a 
+                <div style={{ textAlign: 'center', marginTop: 40, display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a 
+            href="/pwa-test/analytics" 
+            style={{
+              display: 'inline-block',
+              padding: '12px 24px',
+              background: 'var(--white)',
+              color: 'var(--primary-blue)',
+              textDecoration: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              border: '2px solid var(--primary-blue)'
+            }}
+          >
+            📊 View Analytics
+          </a>
+          <a 
             href="/pwa-test" 
             style={{
               display: 'inline-block',

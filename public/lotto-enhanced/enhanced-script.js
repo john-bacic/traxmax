@@ -21,7 +21,6 @@ import {
   saveCombination,
   getUserCombinations,
   deleteCombination,
-  syncLocalToSupabase,
 } from '../lib/supabase/saved-combinations-service.js'
 
 // Simple function to get numberSequences from localStorage
@@ -221,8 +220,17 @@ async function manualSyncToSupabase() {
   }
 
   try {
-    console.log('🔄 Manual sync to Supabase...')
-    await syncLocalToSupabase()
+    console.log('🔄 Manual sync: saving local numbers to Supabase...')
+    const sequences = getNumberSequences()
+    console.log(`📊 Found ${sequences.length} local combinations to sync`)
+
+    for (const numbers of sequences) {
+      if (Array.isArray(numbers) && numbers.length === 7) {
+        await saveCombination(numbers)
+        console.log(`💾 Synced: ${JSON.stringify(numbers)}`)
+      }
+    }
+
     console.log('✅ Manual sync complete')
   } catch (error) {
     console.error('❌ Error in manual sync:', error)
@@ -278,20 +286,18 @@ window.enhancedLotto = {
   saveNewCombination,
   deleteCombinationByIndex,
   clearAllCombinations,
-  loadInitialDataFromSupabase,
+  loadDataFromSupabase: loadInitialDataFromSupabase, // Manual load only
   manualSyncToSupabase,
 }
 
-// Load existing data from Supabase on startup (one-time sync)
-console.log(
-  '🚀 Enhanced script loaded - loading existing data from Supabase...'
-)
-loadInitialDataFromSupabase()
+// Enhanced script loaded - NO auto-sync on page load
+console.log('🚀 Enhanced script loaded - ready for manual save/delete actions')
+console.log('💡 Supabase will only update when you save or delete numbers')
 
 // Listen for online/offline events
 window.addEventListener('online', () => {
-  console.log('🌐 Back online - loading latest data from Supabase')
-  loadInitialDataFromSupabase()
+  console.log('🌐 Back online - ready for save/delete actions')
+  // NO auto-sync - only sync when user saves or deletes
 })
 
 window.addEventListener('offline', () => {

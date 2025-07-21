@@ -168,12 +168,21 @@ async function clearAllCombinations() {
   }
 }
 
+// Flag to prevent multiple initial syncs
+let initialSyncCompleted = false
+
 // Load initial data from Supabase (one-time on startup)
 async function loadInitialDataFromSupabase() {
+  if (initialSyncCompleted) {
+    console.log('⏭️ Initial sync already completed, skipping...')
+    return
+  }
+
   if (!navigator.onLine) {
     console.log('📱 Offline - using local data only')
     // Still refresh display with local data
     refreshDisplay()
+    initialSyncCompleted = true
     return
   }
 
@@ -205,24 +214,50 @@ async function loadInitialDataFromSupabase() {
       }
     } else if (localSequences.length > 0) {
       console.log('📤 No data in Supabase but have local data, syncing up...')
-      // Sync local data to Supabase
+      // Sync local data to Supabase with duplicate checking
+      let syncCount = 0
+
+      // Get existing combinations once at the start
+      let existingCombos = await getUserCombinations()
+      console.log(
+        `🔍 Found ${existingCombos.length} existing combinations in Supabase`
+      )
+
       for (const numbers of localSequences) {
         if (Array.isArray(numbers) && numbers.length === 7) {
-          await saveCombination(numbers)
-          console.log(`💾 Synced to Supabase: ${JSON.stringify(numbers)}`)
+          // Check if this combination already exists
+          const alreadyExists = existingCombos.some(
+            (combo) =>
+              JSON.stringify([...combo.numbers].sort()) ===
+              JSON.stringify([...numbers].sort())
+          )
+
+          if (!alreadyExists) {
+            await saveCombination(numbers)
+            syncCount++
+            console.log(`💾 Synced to Supabase: ${JSON.stringify(numbers)}`)
+
+            // Add to existing combos to prevent duplicates in the same sync
+            existingCombos.push({ numbers: numbers })
+          } else {
+            console.log(`⏭️ Skipping duplicate: ${JSON.stringify(numbers)}`)
+          }
         }
       }
+      console.log(`✅ Synced ${syncCount} new combinations to Supabase`)
     } else {
       console.log('📝 No data in either local or Supabase')
     }
 
     // Always refresh display after loading
     refreshDisplay()
+    initialSyncCompleted = true
     console.log('✅ Initial data sync complete')
   } catch (error) {
     console.error('❌ Error loading initial data from Supabase:', error)
     console.log('📱 Using local data only')
     refreshDisplay()
+    initialSyncCompleted = true
   }
 }
 

@@ -120,6 +120,15 @@ export const syncLocalToSupabase = async () => {
   try {
     console.log('🔄 Checking for real numberSequences to sync...')
 
+    // Check if we've already synced recently to prevent rapid duplicates
+    const lastSync = localStorage.getItem('lastSyncTime')
+    const now = Date.now()
+    if (lastSync && now - parseInt(lastSync) < 5000) {
+      // 5 second cooldown
+      console.log('⏱️ Sync cooldown active - skipping to prevent duplicates')
+      return
+    }
+
     // Check for real numberSequences (this is the actual saved data)
     const numberSequences = localStorage.getItem('numberSequences')
     if (!numberSequences) {
@@ -182,6 +191,9 @@ export const syncLocalToSupabase = async () => {
     }
 
     console.log(`✅ Sync complete: ${syncedCount} new combinations added`)
+
+    // Update last sync time to prevent rapid re-syncing
+    localStorage.setItem('lastSyncTime', Date.now().toString())
 
     console.log('✅ Real numberSequences sync complete')
   } catch (error) {

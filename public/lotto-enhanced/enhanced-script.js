@@ -271,18 +271,18 @@ window.enhancedLotto = {
   syncToSupabase,
 }
 
-// Auto-sync on load
-console.log('🚀 Starting auto-sync...')
-syncToSupabase().then(() => {
-  syncFromSupabase()
-})
+// DISABLED auto-sync to prevent duplicates
+// Only sync manually or when saving new combinations
+console.log(
+  '🚀 Enhanced script loaded - auto-sync DISABLED to prevent duplicates'
+)
+console.log('💡 Sync will only happen when you save new combinations')
 
 // Listen for online/offline events
 window.addEventListener('online', () => {
-  console.log('🌐 Back online - syncing...')
-  syncToSupabase().then(() => {
-    syncFromSupabase()
-  })
+  console.log('🌐 Back online - ready for manual sync')
+  // DISABLED auto-sync to prevent duplicates
+  // You can manually sync using window.enhancedLotto.syncToSupabase()
 })
 
 window.addEventListener('offline', () => {

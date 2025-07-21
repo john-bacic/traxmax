@@ -175,15 +175,15 @@ async function clearAllCombinations() {
   }
 }
 
-// Sync from Supabase to local numberSequences
-async function syncFromSupabase() {
+// Load initial data from Supabase (one-time on startup)
+async function loadInitialDataFromSupabase() {
   if (!navigator.onLine) {
-    console.log('📱 Offline - skipping Supabase sync')
+    console.log('📱 Offline - using local data only')
     return
   }
 
   try {
-    console.log('🔄 Syncing from Supabase...')
+    console.log('📥 Loading initial data from Supabase...')
 
     // Get current Supabase data
     const supabaseCombinations = await getUserCombinations()
@@ -191,36 +191,41 @@ async function syncFromSupabase() {
       `📊 Found ${supabaseCombinations.length} combinations in Supabase`
     )
 
-    // Convert to numberSequences format
-    const sequences = supabaseCombinations.map((combo) => combo.numbers)
+    if (supabaseCombinations.length > 0) {
+      // Convert to numberSequences format
+      const sequences = supabaseCombinations.map((combo) => combo.numbers)
 
-    // Update local storage
-    setNumberSequences(sequences)
+      // Update local storage
+      setNumberSequences(sequences)
 
-    // Update display
-    if (window.displaySavedNumbers) {
-      window.displaySavedNumbers()
+      // Update display
+      if (window.displaySavedNumbers) {
+        window.displaySavedNumbers()
+      }
+
+      console.log('✅ Initial data loaded from Supabase')
+    } else {
+      console.log('📝 No existing data in Supabase')
     }
-
-    console.log('✅ Sync from Supabase complete')
   } catch (error) {
-    console.error('❌ Error syncing from Supabase:', error)
+    console.error('❌ Error loading initial data from Supabase:', error)
+    console.log('📱 Using local data only')
   }
 }
 
-// Sync local numberSequences to Supabase
-async function syncToSupabase() {
+// Manual sync function (only for debugging/manual use)
+async function manualSyncToSupabase() {
   if (!navigator.onLine) {
     console.log('📱 Offline - skipping Supabase sync')
     return
   }
 
   try {
-    console.log('🔄 Syncing to Supabase...')
+    console.log('🔄 Manual sync to Supabase...')
     await syncLocalToSupabase()
-    console.log('✅ Sync to Supabase complete')
+    console.log('✅ Manual sync complete')
   } catch (error) {
-    console.error('❌ Error syncing to Supabase:', error)
+    console.error('❌ Error in manual sync:', error)
   }
 }
 
@@ -273,22 +278,20 @@ window.enhancedLotto = {
   saveNewCombination,
   deleteCombinationByIndex,
   clearAllCombinations,
-  syncFromSupabase,
-  syncToSupabase,
+  loadInitialDataFromSupabase,
+  manualSyncToSupabase,
 }
 
-// DISABLED auto-sync to prevent duplicates
-// Only sync manually or when saving new combinations
+// Load existing data from Supabase on startup (one-time sync)
 console.log(
-  '🚀 Enhanced script loaded - auto-sync DISABLED to prevent duplicates'
+  '🚀 Enhanced script loaded - loading existing data from Supabase...'
 )
-console.log('💡 Sync will only happen when you save new combinations')
+loadInitialDataFromSupabase()
 
 // Listen for online/offline events
 window.addEventListener('online', () => {
-  console.log('🌐 Back online - ready for manual sync')
-  // DISABLED auto-sync to prevent duplicates
-  // You can manually sync using window.enhancedLotto.syncToSupabase()
+  console.log('🌐 Back online - loading latest data from Supabase')
+  loadInitialDataFromSupabase()
 })
 
 window.addEventListener('offline', () => {

@@ -237,28 +237,50 @@ async function manualSyncToSupabase() {
   }
 }
 
-// Override the original save function
-if (window.saveToLocalStorage) {
-  const originalSave = window.saveToLocalStorage
-  window.saveToLocalStorage = function (sequence) {
-    console.log('🔄 Original save called with:', sequence)
+// Override the original save function (with retry mechanism)
+function setupSaveOverride() {
+  if (window.saveToLocalStorage) {
+    console.log('✅ Found window.saveToLocalStorage, setting up override')
+    const originalSave = window.saveToLocalStorage
+    window.saveToLocalStorage = function (sequence) {
+      console.log('🔄 Original save called with:', sequence)
 
-    // Parse the sequence and ensure integers
-    let numbers
-    if (Array.isArray(sequence)) {
-      numbers = sequence.map((n) => parseInt(n, 10))
-    } else if (typeof sequence === 'string') {
-      numbers = sequence.split('-').map((n) => parseInt(n, 10))
-    } else {
-      console.error('❌ Unknown sequence format:', sequence)
-      return
+      // Parse the sequence and ensure integers
+      let numbers
+      if (Array.isArray(sequence)) {
+        numbers = sequence.map((n) => parseInt(n, 10))
+      } else if (typeof sequence === 'string') {
+        numbers = sequence.split('-').map((n) => parseInt(n, 10))
+      } else {
+        console.error('❌ Unknown sequence format:', sequence)
+        return
+      }
+
+      console.log('🔢 Parsed numbers as integers:', numbers)
+
+      // Save using our new function
+      saveNewCombination(numbers)
     }
-
-    console.log('🔢 Parsed numbers as integers:', numbers)
-
-    // Save using our new function
-    saveNewCombination(numbers)
+    return true
+  } else {
+    console.log('⏳ window.saveToLocalStorage not ready yet, will retry...')
+    return false
   }
+}
+
+// Try to setup override immediately, then retry if needed
+if (!setupSaveOverride()) {
+  const retryInterval = setInterval(() => {
+    if (setupSaveOverride()) {
+      clearInterval(retryInterval)
+    }
+  }, 100) // Check every 100ms
+
+  // Stop trying after 10 seconds
+  setTimeout(() => {
+    clearInterval(retryInterval)
+    console.log('⚠️ Failed to find window.saveToLocalStorage after 10 seconds')
+  }, 10000)
 }
 
 // Override delete function if it exists
@@ -293,6 +315,17 @@ window.enhancedLotto = {
 // Enhanced script loaded - NO auto-sync on page load
 console.log('🚀 Enhanced script loaded - ready for manual save/delete actions')
 console.log('💡 Supabase will only update when you save or delete numbers')
+
+// Debug what functions are available
+console.log('🔍 Available window functions:', {
+  saveToLocalStorage: typeof window.saveToLocalStorage,
+  populateSavedNumbersFromLocalStorage:
+    typeof window.populateSavedNumbersFromLocalStorage,
+  displaySavedNumbers: typeof window.displaySavedNumbers,
+  lottoMaxWinningNumbers2023: Array.isArray(window.lottoMaxWinningNumbers2023)
+    ? window.lottoMaxWinningNumbers2023.length + ' items'
+    : typeof window.lottoMaxWinningNumbers2023,
+})
 
 // Listen for online/offline events
 window.addEventListener('online', () => {

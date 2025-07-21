@@ -78,9 +78,7 @@ async function saveNewCombination(numbers) {
     }
 
     // Update display
-    if (window.displaySavedNumbers) {
-      window.displaySavedNumbers()
-    }
+    refreshDisplay()
 
     return true
   } catch (error) {
@@ -130,9 +128,7 @@ async function deleteCombinationByIndex(index) {
     }
 
     // Update display
-    if (window.displaySavedNumbers) {
-      window.displaySavedNumbers()
-    }
+    refreshDisplay()
 
     return true
   } catch (error) {
@@ -163,9 +159,7 @@ async function clearAllCombinations() {
     }
 
     // Update display
-    if (window.displaySavedNumbers) {
-      window.displaySavedNumbers()
-    }
+    refreshDisplay()
 
     return true
   } catch (error) {
@@ -178,11 +172,19 @@ async function clearAllCombinations() {
 async function loadInitialDataFromSupabase() {
   if (!navigator.onLine) {
     console.log('📱 Offline - using local data only')
+    // Still refresh display with local data
+    refreshDisplay()
     return
   }
 
   try {
     console.log('📥 Loading initial data from Supabase...')
+
+    // Get current local data
+    const localSequences = getNumberSequences()
+    console.log(
+      `📱 Local numberSequences: ${localSequences.length} combinations`
+    )
 
     // Get current Supabase data
     const supabaseCombinations = await getUserCombinations()
@@ -194,21 +196,50 @@ async function loadInitialDataFromSupabase() {
       // Convert to numberSequences format
       const sequences = supabaseCombinations.map((combo) => combo.numbers)
 
-      // Update local storage
-      setNumberSequences(sequences)
-
-      // Update display
-      if (window.displaySavedNumbers) {
-        window.displaySavedNumbers()
+      // Only update if different from local
+      if (JSON.stringify(sequences) !== JSON.stringify(localSequences)) {
+        console.log('🔄 Supabase data differs from local, updating...')
+        setNumberSequences(sequences)
+      } else {
+        console.log('✅ Local and Supabase data are in sync')
       }
-
-      console.log('✅ Initial data loaded from Supabase')
+    } else if (localSequences.length > 0) {
+      console.log('📤 No data in Supabase but have local data, syncing up...')
+      // Sync local data to Supabase
+      for (const numbers of localSequences) {
+        if (Array.isArray(numbers) && numbers.length === 7) {
+          await saveCombination(numbers)
+          console.log(`💾 Synced to Supabase: ${JSON.stringify(numbers)}`)
+        }
+      }
     } else {
-      console.log('📝 No existing data in Supabase')
+      console.log('📝 No data in either local or Supabase')
     }
+
+    // Always refresh display after loading
+    refreshDisplay()
+    console.log('✅ Initial data sync complete')
   } catch (error) {
     console.error('❌ Error loading initial data from Supabase:', error)
     console.log('📱 Using local data only')
+    refreshDisplay()
+  }
+}
+
+// Function to refresh the display
+function refreshDisplay() {
+  try {
+    if (window.populateSavedNumbersFromLocalStorage) {
+      window.populateSavedNumbersFromLocalStorage()
+      console.log('🔄 Display refreshed')
+    } else if (window.displaySavedNumbers) {
+      window.displaySavedNumbers()
+      console.log('🔄 Display refreshed (fallback)')
+    } else {
+      console.log('⚠️ No display function found')
+    }
+  } catch (error) {
+    console.error('❌ Error refreshing display:', error)
   }
 }
 
@@ -312,7 +343,7 @@ window.enhancedLotto = {
   manualSyncToSupabase,
 }
 
-// Enhanced script loaded - NO auto-sync on page load
+// Enhanced script loaded - load initial data
 console.log('🚀 Enhanced script loaded - ready for manual save/delete actions')
 console.log('💡 Supabase will only update when you save or delete numbers')
 
@@ -326,6 +357,12 @@ console.log('🔍 Available window functions:', {
     ? window.lottoMaxWinningNumbers2023.length + ' items'
     : typeof window.lottoMaxWinningNumbers2023,
 })
+
+// Load initial data from Supabase and sync with local
+setTimeout(() => {
+  console.log('📥 Starting initial data load...')
+  loadInitialDataFromSupabase()
+}, 1000) // Wait 1 second for other scripts to initialize
 
 // Listen for online/offline events
 window.addEventListener('online', () => {

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug localStorage</title>
+</head>
+<body>
+    <h1>Debug localStorage and Supabase Sync</h1>
+    
+    <button onclick="checkLocalStorage()">Check localStorage</button>
+    <button onclick="testSync()">Test Sync to Supabase</button>
+    <button onclick="clearSupabase()">Clear Supabase</button>
+    
+    <div id="output" style="white-space: pre-wrap; font-family: monospace; margin-top: 20px;"></div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+        
+        // Supabase config
+        const supabaseUrl = 'https://slyscrmgrrjzzclbbdia.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc'
+        
+        const supabase = createClient(supabaseUrl, supabaseKey)
+        const output = document.getElementById('output')
+        
+        function log(message) {
+            output.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n'
+        }
+        
+        window.checkLocalStorage = function() {
+            log('🔍 Checking localStorage...')
+            
+            // Check all relevant localStorage keys
+            const numberSequences = localStorage.getItem('numberSequences')
+            const savedNumbers = localStorage.getItem('savedNumbers')
+            const offlineCombo = localStorage.getItem('offline-lotto-combinations')
+            
+            log('numberSequences: ' + (numberSequences || 'NULL'))
+            log('savedNumbers: ' + (savedNumbers || 'NULL'))
+            log('offline-lotto-combinations: ' + (offlineCombo || 'NULL'))
+            
+            // If numberSequences exists, parse and show it
+            if (numberSequences) {
+                try {
+                    const parsed = JSON.parse(numberSequences)
+                    log('📊 Parsed numberSequences: ' + JSON.stringify(parsed))
+                } catch (e) {
+                    log('❌ Error parsing numberSequences: ' + e.message)
+                }
+            }
+        }
+        
+        window.testSync = async function() {
+            log('🔄 Testing sync to Supabase...')
+            
+            try {
+                // Sign in anonymously
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
+                if (authError) throw authError
+                log('✅ Signed in: ' + authData.user?.id)
+                
+                // Check for numberSequences
+                const numberSequences = localStorage.getItem('numberSequences')
+                if (!numberSequences) {
+                    log('❌ No numberSequences in localStorage')
+                    return
+                }
+                
+                let realCombinations
+                try {
+                    realCombinations = JSON.parse(numberSequences)
+                    log('📊 Found combinations to sync: ' + JSON.stringify(realCombinations))
+                } catch (parseError) {
+                    log('❌ Parse error: ' + parseError.message)
+                    return
+                }
+                
+                // Sync each combination
+                for (let i = 0; i < realCombinations.length; i++) {
+                    const numbers = realCombinations[i]
+                    log('💾 Syncing combination ' + (i + 1) + ': ' + JSON.stringify(numbers))
+                    
+                    const { data, error } = await supabase
+                        .from('saved_combinations')
+                        .insert({
+                            numbers: numbers,
+                            name: 'Real Combination ' + (i + 1)
+                        })
+                        .select()
+                        .single()
+                    
+                    if (error) {
+                        log('❌ Save error: ' + error.message)
+                    } else {
+                        log('✅ Saved: ' + JSON.stringify(data.numbers))
+                    }
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message)
+            }
+        }
+        
+        window.clearSupabase = async function() {
+            log('🧹 Clearing Supabase...')
+            
+            try {
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously()
+                if (authError) throw authError
+                
+                const { error: deleteError } = await supabase
+                    .from('saved_combinations')
+                    .delete()
+                    .gte('id', '00000000-0000-0000-0000-000000000000')
+                
+                if (deleteError) {
+                    log('❌ Delete error: ' + deleteError.message)
+                } else {
+                    log('✅ Supabase cleared')
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message)
+            }
+        }
+    </script>
+</body>
+</html> 

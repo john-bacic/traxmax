@@ -165,8 +165,14 @@ export default function LottoEnhanced() {
     console.log('  - localStorage cache exists:', !!localStorage.getItem('lotto-cached-data'));
     
     // Pass Supabase credentials to the window object
-    (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // Fallback to hardcoded values if env vars aren't loaded
+    (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://slyscrmgrrjzzclbbdia.supabase.co';
+    (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+    
+    console.log('🔧 Supabase credentials set:', {
+      url: (window as any).SUPABASE_URL,
+      keyPreview: (window as any).SUPABASE_ANON_KEY?.substring(0, 20) + '...'
+    });
     
     // We'll inject the original HTML and scripts here
     const container = document.getElementById('lotto-container');

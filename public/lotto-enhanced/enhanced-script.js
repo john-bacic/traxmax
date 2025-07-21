@@ -1,743 +1,292 @@
-// Enhanced LOTTO script with Supabase integration and offline support
-// This script loads after authentication and enhances the original functionality
+// Enhanced LOTTO script - ONLY uses numberSequences for localStorage and Supabase sync
+console.log('🚀 Enhanced Supabase script loading...')
 
-// Import Supabase client
-// import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+// Initialize localStorage with numberSequences if not present
+if (!localStorage.getItem('numberSequences')) {
+  console.log('🆕 Initializing empty numberSequences array')
+  localStorage.setItem('numberSequences', '[]')
+}
 
-// Initialize Supabase (these will be set from the parent React component)
-// const supabaseUrl = window.SUPABASE_URL || ''
-// const supabaseAnonKey = window.SUPABASE_ANON_KEY || ''
-// const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Clean up any old storage keys
+localStorage.removeItem('savedNumbers')
+localStorage.removeItem('offline-lotto-combinations')
 
-// Check if we're in offline mode (use browser's navigator.onLine only)
-const isOfflineMode = !navigator.onLine
+console.log(
+  '🔍 Current numberSequences:',
+  localStorage.getItem('numberSequences')
+)
 
-// Load the original data first
-let lottoMaxWinningNumbers2023 = []
+// Import Supabase services
+import {
+  saveCombination,
+  getUserCombinations,
+  deleteCombination,
+  syncLocalToSupabase,
+} from '../lib/supabase/saved-combinations-service.js'
 
-// Function to update offline indicator
-function updateOfflineIndicator(isOffline) {
-  const offlineIndicator = document.getElementById('offline-indicator')
-  if (offlineIndicator) {
-    if (isOffline) {
-      offlineIndicator.classList.add('visible')
+// Simple function to get numberSequences from localStorage
+function getNumberSequences() {
+  try {
+    const sequences = localStorage.getItem('numberSequences')
+    return sequences ? JSON.parse(sequences) : []
+  } catch (error) {
+    console.error('❌ Error parsing numberSequences:', error)
+    return []
+  }
+}
+
+// Simple function to save numberSequences to localStorage
+function setNumberSequences(sequences) {
+  try {
+    localStorage.setItem('numberSequences', JSON.stringify(sequences))
+    console.log('💾 Updated numberSequences:', sequences)
+  } catch (error) {
+    console.error('❌ Error saving numberSequences:', error)
+  }
+}
+
+// Save a new combination to numberSequences and Supabase
+async function saveNewCombination(numbers) {
+  console.log('🎯 Saving new combination:', numbers)
+
+  // Validate input
+  if (!Array.isArray(numbers) || numbers.length !== 7) {
+    console.error('❌ Invalid numbers for saving:', numbers)
+    return false
+  }
+
+  try {
+    // Add to local numberSequences
+    const sequences = getNumberSequences()
+    sequences.push(numbers)
+    setNumberSequences(sequences)
+
+    // Save to Supabase if online
+    if (navigator.onLine) {
+      try {
+        await saveCombination(numbers)
+        console.log('✅ Saved to Supabase')
+      } catch (supabaseError) {
+        console.error('❌ Supabase save failed:', supabaseError)
+        // Keep local save even if Supabase fails
+      }
     } else {
-      offlineIndicator.classList.remove('visible')
-    }
-  }
-}
-
-// Function to handle online/offline status changes
-function handleConnectionChange() {
-  const isCurrentlyOffline = !navigator.onLine
-  updateOfflineIndicator(isCurrentlyOffline)
-
-  if (isCurrentlyOffline) {
-    console.log('App is now offline - showing offline indicator')
-  } else {
-    console.log('App is now online - hiding offline indicator')
-  }
-}
-
-// Debug function to manually test offline indicator (temporary)
-window.debugOfflineIndicator = function (show = true) {
-  console.log(`Debug: ${show ? 'Showing' : 'Hiding'} offline indicator`)
-  updateOfflineIndicator(show)
-  return show
-}
-
-// Function to load data from Supabase or cache
-async function loadDataFromSupabase() {
-  try {
-    // If offline, skip Supabase loading
-    if (!navigator.onLine) {
-      console.log('Offline mode: Skipping Supabase data loading')
-      return
+      console.log('📱 Offline - saved locally only')
     }
 
-    // Temporarily disabled Supabase loading - always fall back to local data
-    throw new Error('Supabase temporarily disabled - using local data')
-
-    // const { data, error } = await supabase
-    //   .from('lotto_draws')
-    //   .select('*')
-    //   .order('draw_date', { ascending: false })
-
-    // if (error) throw error
-
-    // // Convert Supabase data to the original format
-    // lottoMaxWinningNumbers2023 = data.map((draw) => ({
-    //   date: draw.draw_date,
-    //   numbers: draw.numbers,
-    //   bonus: draw.bonus,
-    //   jackpot: draw.jackpot,
-    // }))
-
-    // console.log(
-    //   'Loaded',
-    //   lottoMaxWinningNumbers2023.length,
-    //   'draws from Supabase'
-    // )
-
-    // // Cache the data for offline use
-    // localStorage.setItem('lotto-cached-data', JSON.stringify(lottoMaxWinningNumbers2023));
-
-    // // Update the global variable that the original script uses
-    // window.lottoMaxWinningNumbers2023 = lottoMaxWinningNumbers2023
-  } catch (error) {
-    console.log('Supabase loading failed (this is normal):', error.message)
-    // Local data should already be loaded by loadDataScript()
-  }
-}
-
-// Function to load local data script (returns Promise)
-function loadDataScript() {
-  console.log('🚀 loadDataScript called')
-  console.log('📊 Current state before loading:')
-  console.log(
-    '  - window.lottoMaxWinningNumbers2023 exists:',
-    !!window.lottoMaxWinningNumbers2023
-  )
-  console.log(
-    '  - window.lottoMaxWinningNumbers2023 length:',
-    window.lottoMaxWinningNumbers2023?.length
-  )
-  console.log(
-    '  - localStorage cache exists:',
-    !!localStorage.getItem('lotto-cached-data')
-  )
-
-  return new Promise((resolve, reject) => {
-    // Always reload data.js after navigation to ensure proper initialization
-    // The early return was causing issues when navigating back from /game
-    console.log(
-      '🔄 Loading fresh data.js script (always reload after navigation)...'
-    )
-
-    // Get cache first before clearing anything
-    const cachedData = localStorage.getItem('lotto-cached-data')
-    console.log(
-      '💾 Cache data available:',
-      !!cachedData,
-      cachedData ? `(${JSON.parse(cachedData).length} draws)` : ''
-    )
-
-    // Determine if this is navigation (stale data exists) vs fresh load
-    const isNavigation = !!window.lottoMaxWinningNumbers2023
-
-    if (isNavigation) {
-      console.log('🧹 Navigation detected - clearing stale data')
-      delete window.lottoMaxWinningNumbers2023
-    } else {
-      console.log(
-        '🆕 Fresh load detected - preloading cache for offline fallback'
-      )
-      // Preload cache for offline mode, but network request will still be attempted
-      if (cachedData) {
-        try {
-          window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
-          console.log(
-            '✅ Cache preloaded for offline fallback:',
-            window.lottoMaxWinningNumbers2023.length,
-            'draws'
-          )
-        } catch (error) {
-          console.warn('⚠️ Failed to parse cached data:', error)
-        }
-      } else {
-        console.warn(
-          '⚠️ No cache available - this might be first visit on Vercel'
-        )
-        console.log(
-          '💡 On Vercel, offline mode needs at least one successful online visit first'
-        )
-      }
-    }
-
-    // Remove any existing data.js scripts first
-    const existingScripts = document.querySelectorAll(
-      'script[src*="/lotto-enhanced/data.js"]'
-    )
-    console.log('🗑️ Removing existing data.js scripts:', existingScripts.length)
-    existingScripts.forEach((s) => s.remove())
-
-    // Always load fresh data.js with cache busting
-    const timestamp = Date.now()
-    console.log('📥 Loading fresh data.js script with timestamp:', timestamp)
-    const script = document.createElement('script')
-    script.src = `/lotto-enhanced/data.js?t=${timestamp}`
-    script.onload = () => {
-      console.log('✅ data.js script onload fired')
-      console.log('📊 Post-load state:')
-      console.log(
-        '  - window.lottoMaxWinningNumbers2023 exists:',
-        !!window.lottoMaxWinningNumbers2023
-      )
-      console.log(
-        '  - window.lottoMaxWinningNumbers2023 length:',
-        window.lottoMaxWinningNumbers2023?.length
-      )
-      console.log(
-        '  - window.lottoMaxWinningNumbers2023 type:',
-        typeof window.lottoMaxWinningNumbers2023
-      )
-
-      // Cache the loaded data for offline use
-      if (
-        window.lottoMaxWinningNumbers2023 &&
-        window.lottoMaxWinningNumbers2023.length > 0
-      ) {
-        localStorage.setItem(
-          'lotto-cached-data',
-          JSON.stringify(window.lottoMaxWinningNumbers2023)
-        )
-        console.log(
-          '🌐 Loaded and cached fresh network data:',
-          window.lottoMaxWinningNumbers2023.length,
-          'draws'
-        )
-        resolve()
-      } else {
-        console.error('❌ Data script loaded but no valid data found')
-        console.error(
-          'window.lottoMaxWinningNumbers2023:',
-          window.lottoMaxWinningNumbers2023
-        )
-
-        // Try fallback to cache
-        if (cachedData) {
-          try {
-            window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
-            console.log(
-              '🔄 Using cached data as fallback:',
-              window.lottoMaxWinningNumbers2023.length,
-              'draws'
-            )
-            resolve()
-          } catch (error) {
-            console.error('❌ Failed to parse cached data:', error)
-            reject(new Error('No data found in script and cache failed'))
-          }
-        } else {
-          reject(new Error('No data found in script and no cache available'))
-        }
-      }
-    }
-    script.onerror = (error) => {
-      console.error('❌ Failed to load data.js script:', error)
-      console.error('Script src was:', script.src)
-
-      // Check if we already have preloaded cache data (offline mode scenario)
-      if (
-        window.lottoMaxWinningNumbers2023 &&
-        window.lottoMaxWinningNumbers2023.length > 0
-      ) {
-        console.log(
-          '✅ Using preloaded cache data after network failure:',
-          window.lottoMaxWinningNumbers2023.length,
-          'draws'
-        )
-        resolve()
-        return
-      }
-
-      // Try direct fetch to let service worker handle caching (without cache busting)
-      console.log(
-        '🔄 Script tag failed, trying direct fetch for service worker cache...'
-      )
-      fetch('/lotto-enhanced/data.js')
-        .then((response) => {
-          if (response.ok) {
-            return response.text()
-          }
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-        })
-        .then((scriptText) => {
-          console.log('✅ Direct fetch succeeded, executing script...')
-          try {
-            eval(scriptText)
-            if (
-              window.lottoMaxWinningNumbers2023 &&
-              window.lottoMaxWinningNumbers2023.length > 0
-            ) {
-              console.log(
-                '✅ Data loaded via direct fetch:',
-                window.lottoMaxWinningNumbers2023.length,
-                'draws'
-              )
-              resolve()
-            } else {
-              throw new Error('Data not available after direct fetch execution')
-            }
-          } catch (execError) {
-            console.error(
-              '❌ Failed to execute direct fetched script:',
-              execError
-            )
-            throw execError
-          }
-        })
-        .catch((fetchError) => {
-          console.error('❌ Direct fetch also failed:', fetchError)
-
-          // Final fallback to localStorage cache
-          if (cachedData) {
-            try {
-              window.lottoMaxWinningNumbers2023 = JSON.parse(cachedData)
-              console.log(
-                '🔄 Using localStorage cache after all network attempts failed:',
-                window.lottoMaxWinningNumbers2023.length,
-                'draws'
-              )
-              resolve()
-            } catch (error) {
-              console.error('❌ Failed to parse cached data:', error)
-              reject(
-                new Error(
-                  'All loading attempts failed including cache fallback'
-                )
-              )
-            }
-          } else {
-            reject(new Error('No data loaded and no cache available'))
-          }
-        })
-    }
-    document.head.appendChild(script)
-  })
-}
-
-// Function to save user's saved numbers to Supabase
-async function saveToSupabase(numbers) {
-  try {
-    // Import the service dynamically
-    const { saveCombination, initializeUser } = await import(
-      '/lib/supabase/saved-combinations-service.js'
-    )
-
-    // Ensure user is initialized (anonymous auth)
-    await initializeUser()
-
-    // Save the combination
-    await saveCombination(numbers)
-    console.log('✅ Saved numbers to Supabase:', numbers)
-
-    // Also update the local display
-    await loadUserSavedNumbers()
-  } catch (error) {
-    console.error('❌ Error saving to Supabase:', error)
-    // Continue with localStorage fallback (original function already called)
-  }
-}
-
-// Function to load user's saved numbers from Supabase
-async function loadUserSavedNumbers() {
-  try {
-    // Import the service dynamically
-    const { getUserCombinations, initializeUser, syncLocalToSupabase } =
-      await import('/lib/supabase/saved-combinations-service.js')
-
-    // Ensure user is initialized (anonymous auth)
-    await initializeUser()
-
-    // Sync any local data first
-    await syncLocalToSupabase()
-
-    // Load from Supabase
-    const combinations = await getUserCombinations()
-    console.log('✅ Loaded', combinations.length, 'combinations from Supabase')
-
-    // Update localStorage with Supabase data (convert to old format for compatibility)
-    if (combinations && combinations.length > 0) {
-      const savedNumbers = combinations.map((item) => item.numbers)
-      localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
-
-      // Update the UI if the displaySavedNumbers function exists
-      if (window.displaySavedNumbers) {
-        window.displaySavedNumbers()
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error loading saved numbers from Supabase:', error)
-    // Fallback to existing localStorage data
-  }
-}
-
-// Override the original save function to also save to Supabase
-const originalSaveToLocalStorage = window.saveToLocalStorage
-window.saveToLocalStorage = function (sequence) {
-  // Call original function
-  if (originalSaveToLocalStorage) {
-    originalSaveToLocalStorage(sequence)
-  }
-  // Also save to Supabase
-  saveToSupabase(sequence.split('-').map(Number))
-}
-
-// Add delete function for individual combinations
-window.deleteSavedCombination = async function (index) {
-  try {
-    // Import the service dynamically
-    const { getUserCombinations, deleteCombination } = await import(
-      '/lib/supabase/saved-combinations-service.js'
-    )
-
-    // Get current combinations to find the one to delete
-    const combinations = await getUserCombinations()
-    if (index >= 0 && index < combinations.length) {
-      const combinationToDelete = combinations[index]
-
-      // Delete from Supabase
-      await deleteCombination(combinationToDelete.id)
-
-      // Also remove from localStorage for consistency
-      const savedNumbers = JSON.parse(
-        localStorage.getItem('savedNumbers') || '[]'
-      )
-      savedNumbers.splice(index, 1)
-      localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
-
-      // Update the UI
-      if (window.displaySavedNumbers) {
-        window.displaySavedNumbers()
-      }
-
-      console.log('✅ Combination deleted successfully')
-    }
-  } catch (error) {
-    console.error('❌ Error deleting combination:', error)
-    // Fallback to localStorage only
-    const savedNumbers = JSON.parse(
-      localStorage.getItem('savedNumbers') || '[]'
-    )
-    savedNumbers.splice(index, 1)
-    localStorage.setItem('savedNumbers', JSON.stringify(savedNumbers))
-
+    // Update display
     if (window.displaySavedNumbers) {
       window.displaySavedNumbers()
     }
+
+    return true
+  } catch (error) {
+    console.error('❌ Error saving combination:', error)
+    return false
   }
 }
 
-// Show loading spinner
-function showDataLoader() {
-  const loader = document.getElementById('dataLoader')
-  if (loader) {
-    loader.classList.remove('hidden')
-    loader.style.display = 'flex' // Ensure it's visible
-    loader.style.backgroundColor = 'rgba(0, 0, 0, 0.9)' // Make sure background is visible
-    loader.style.zIndex = '99999' // Ensure it's on top
-    console.log(
-      'Data loader shown - should see spinner and "Loading data..." text'
-    )
-
-    // Check if loading text is present
-    const loadingText = loader.querySelector('.loading-text')
-    if (loadingText) {
-      console.log('Loading text found:', loadingText.textContent)
-    } else {
-      console.log('Loading text element not found!')
-    }
-  } else {
-    console.log('Data loader element not found - check if HTML loaded properly')
-  }
-}
-
-// Hide loading spinner
-function hideDataLoader() {
-  const loader = document.getElementById('dataLoader')
-  if (loader) {
-    loader.classList.add('hidden')
-    console.log('Data loader hidden')
-  } else {
-    console.log('Data loader element not found when trying to hide')
-  }
-}
-
-// Initialize the app
-async function initializeEnhancedLotto() {
-  console.log('Initializing enhanced lotto...')
-  // Loader should already be visible by default, just ensure it's shown
-  showDataLoader()
-
-  // Add minimum loading time so user can see the spinner
-  const minLoadingTime = new Promise((resolve) => setTimeout(resolve, 1000))
-
-  // Set Supabase credentials from parent
-  window.SUPABASE_URL =
-    window.parent.SUPABASE_URL || localStorage.getItem('supabase_url')
-  window.SUPABASE_ANON_KEY =
-    window.parent.SUPABASE_ANON_KEY || localStorage.getItem('supabase_anon_key')
+// Delete a combination by index
+async function deleteCombinationByIndex(index) {
+  console.log('🗑️ Deleting combination at index:', index)
 
   try {
-    console.log('🔄 Step 1: Loading data.js...')
-    await loadDataScript()
-    console.log('✅ Step 1 complete: data.js loaded')
+    const sequences = getNumberSequences()
 
-    console.log('🔄 Step 2: Loading Supabase data...')
-    await loadDataFromSupabase()
-    console.log('✅ Step 2 complete: Supabase check done')
+    if (index < 0 || index >= sequences.length) {
+      console.error('❌ Invalid index:', index)
+      return false
+    }
 
-    console.log('🔄 Step 3: Loading user saved numbers...')
-    await loadUserSavedNumbers()
-    console.log('✅ Step 3 complete: User data loaded')
+    const numbersToDelete = sequences[index]
+    console.log('🎯 Deleting numbers:', numbersToDelete)
 
-    console.log('🔄 Step 4: Waiting for minimum loading time...')
-    await minLoadingTime
-    console.log('✅ Step 4 complete: Minimum time elapsed')
+    // Remove from local
+    sequences.splice(index, 1)
+    setNumberSequences(sequences)
+
+    // Delete from Supabase if online
+    if (navigator.onLine) {
+      try {
+        // Get all Supabase combinations to find the matching one
+        const supabaseCombinations = await getUserCombinations()
+        const matchingCombination = supabaseCombinations.find(
+          (combo) =>
+            JSON.stringify(combo.numbers.sort()) ===
+            JSON.stringify(numbersToDelete.sort())
+        )
+
+        if (matchingCombination) {
+          await deleteCombination(matchingCombination.id)
+          console.log('✅ Deleted from Supabase')
+        }
+      } catch (supabaseError) {
+        console.error('❌ Supabase delete failed:', supabaseError)
+        // Keep local deletion even if Supabase fails
+      }
+    }
+
+    // Update display
+    if (window.displaySavedNumbers) {
+      window.displaySavedNumbers()
+    }
+
+    return true
   } catch (error) {
-    console.error('❌ Error during initialization step:', error)
-    console.error('Error stack:', error.stack)
-    // Wait for minimum time even on error, then hide loader
-    await minLoadingTime
-    hideDataLoader()
+    console.error('❌ Error deleting combination:', error)
+    return false
+  }
+}
+
+// Clear all combinations
+async function clearAllCombinations() {
+  console.log('🧹 Clearing all combinations')
+
+  try {
+    // Clear local
+    setNumberSequences([])
+
+    // Clear Supabase if online
+    if (navigator.onLine) {
+      try {
+        const supabaseCombinations = await getUserCombinations()
+        for (const combo of supabaseCombinations) {
+          await deleteCombination(combo.id)
+        }
+        console.log('✅ Cleared from Supabase')
+      } catch (supabaseError) {
+        console.error('❌ Supabase clear failed:', supabaseError)
+      }
+    }
+
+    // Update display
+    if (window.displaySavedNumbers) {
+      window.displaySavedNumbers()
+    }
+
+    return true
+  } catch (error) {
+    console.error('❌ Error clearing combinations:', error)
+    return false
+  }
+}
+
+// Sync from Supabase to local numberSequences
+async function syncFromSupabase() {
+  if (!navigator.onLine) {
+    console.log('📱 Offline - skipping Supabase sync')
     return
   }
 
-  // Now load the original script ONLY after data is confirmed loaded
-  const loadOriginalScript = () => {
-    // Critical: Verify data exists before loading script.js
-    if (
-      !window.lottoMaxWinningNumbers2023 ||
-      window.lottoMaxWinningNumbers2023.length === 0
-    ) {
-      console.error('❌ CRITICAL: Cannot load script.js - no data available!')
-      console.error(
-        'window.lottoMaxWinningNumbers2023:',
-        window.lottoMaxWinningNumbers2023
-      )
-      hideDataLoader()
+  try {
+    console.log('🔄 Syncing from Supabase...')
+
+    // Get current Supabase data
+    const supabaseCombinations = await getUserCombinations()
+    console.log(
+      `📊 Found ${supabaseCombinations.length} combinations in Supabase`
+    )
+
+    // Convert to numberSequences format
+    const sequences = supabaseCombinations.map((combo) => combo.numbers)
+
+    // Update local storage
+    setNumberSequences(sequences)
+
+    // Update display
+    if (window.displaySavedNumbers) {
+      window.displaySavedNumbers()
+    }
+
+    console.log('✅ Sync from Supabase complete')
+  } catch (error) {
+    console.error('❌ Error syncing from Supabase:', error)
+  }
+}
+
+// Sync local numberSequences to Supabase
+async function syncToSupabase() {
+  if (!navigator.onLine) {
+    console.log('📱 Offline - skipping Supabase sync')
+    return
+  }
+
+  try {
+    console.log('🔄 Syncing to Supabase...')
+    await syncLocalToSupabase()
+    console.log('✅ Sync to Supabase complete')
+  } catch (error) {
+    console.error('❌ Error syncing to Supabase:', error)
+  }
+}
+
+// Override the original save function
+if (window.saveToLocalStorage) {
+  const originalSave = window.saveToLocalStorage
+  window.saveToLocalStorage = function (sequence) {
+    console.log('🔄 Original save called with:', sequence)
+
+    // Parse the sequence
+    let numbers
+    if (Array.isArray(sequence)) {
+      numbers = sequence
+    } else if (typeof sequence === 'string') {
+      numbers = sequence.split('-').map(Number)
+    } else {
+      console.error('❌ Unknown sequence format:', sequence)
       return
     }
 
-    console.log(
-      '✅ Data confirmed available, loading script.js with',
-      window.lottoMaxWinningNumbers2023.length,
-      'draws'
-    )
-
-    // Remove any existing script.js to ensure fresh load
-    const existingScripts = document.querySelectorAll(
-      'script[src*="/lotto-enhanced/script.js"]'
-    )
-    console.log(
-      '🗑️ Removing existing script.js instances:',
-      existingScripts.length
-    )
-    existingScripts.forEach((script) => script.remove())
-
-    // Add cache busting and extra verification
-    const script = document.createElement('script')
-    script.type = 'module'
-    script.src = `/lotto-enhanced/script.js?t=${Date.now()}`
-
-    // Double-check data exists just before loading
-    script.onload = () => {
-      console.log('✅ script.js loaded, final data verification:')
-      console.log(
-        '  - window.lottoMaxWinningNumbers2023 exists:',
-        !!window.lottoMaxWinningNumbers2023
-      )
-      console.log(
-        '  - window.lottoMaxWinningNumbers2023 length:',
-        window.lottoMaxWinningNumbers2023?.length
-      )
-      console.log(
-        '  - First few draws:',
-        window.lottoMaxWinningNumbers2023?.slice(0, 2)
-      )
-    }
-
-    script.onerror = () => {
-      console.log(
-        'Original script failed to load, continuing with enhanced features only'
-      )
-      // Hide loader even if script fails
-      hideDataLoader()
-    }
-    script.onload = () => {
-      console.log('Original script loaded successfully')
-      // Initialize sumText with placeholder immediately after script loads
-      setTimeout(() => {
-        const sumDiv = document.querySelector('.sumText')
-        if (sumDiv) {
-          // Always trigger initial calculation to show placeholder
-          if (typeof window.calculateAndDisplaySum === 'function') {
-            window.calculateAndDisplaySum()
-            console.log(
-              'sumText initialized with placeholder from enhanced-script'
-            )
-          } else {
-            console.log('calculateAndDisplaySum function not found on window')
-          }
-        } else {
-          console.log('sumText element not found')
-        }
-
-        // Hide loading spinner - everything is ready
-        hideDataLoader()
-        console.log('App fully initialized - loader hidden')
-
-        // Verify data loaded
-        if (
-          window.lottoMaxWinningNumbers2023 &&
-          window.lottoMaxWinningNumbers2023.length > 0
-        ) {
-          console.log(
-            '✅ Data verification: Lottery data loaded successfully -',
-            window.lottoMaxWinningNumbers2023.length,
-            'draws available'
-          )
-        } else {
-          console.log('❌ Data verification: No lottery data found!')
-        }
-      }, 500) // Increased timeout to ensure DOM and script are fully ready
-    }
-    script.onerror = () => {
-      console.log(
-        'Original script failed to load, continuing with enhanced features only'
-      )
-      // Hide loader even if script fails
-      hideDataLoader()
-    }
-    document.body.appendChild(script)
+    // Save using our new function
+    saveNewCombination(numbers)
   }
-
-  // Ensure DOM is ready before loading script
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadOriginalScript)
-  } else {
-    loadOriginalScript()
-  }
-
-  console.log('🎯 Initialization complete - script loading initiated')
 }
 
-// Start initialization
-console.log('Starting enhanced lotto initialization...')
-
-// IMMEDIATE fallback: Hide loader if it's still visible after 2 seconds
-setTimeout(() => {
-  const loader = document.getElementById('dataLoader')
-  if (loader && loader.style.display !== 'none') {
-    console.log('🔴 IMMEDIATE FALLBACK: Force hiding stuck loader')
-    loader.style.display = 'none'
-    loader.style.visibility = 'hidden'
-    loader.classList.add('hidden')
+// Override delete function if it exists
+if (window.deleteCombination) {
+  const originalDelete = window.deleteCombination
+  window.deleteCombination = function (index) {
+    console.log('🔄 Original delete called with index:', index)
+    deleteCombinationByIndex(index)
   }
-}, 2000)
+}
 
-initializeEnhancedLotto().catch((error) => {
-  console.error('Failed to initialize enhanced lotto:', error)
-  // Make sure to hide loader on any error
-  hideDataLoader()
+// Override clear function if it exists
+if (window.clearSavedNumbers) {
+  const originalClear = window.clearSavedNumbers
+  window.clearSavedNumbers = function () {
+    console.log('🔄 Original clear called')
+    clearAllCombinations()
+  }
+}
+
+// Make functions available globally for debugging
+window.enhancedLotto = {
+  getNumberSequences,
+  setNumberSequences,
+  saveNewCombination,
+  deleteCombinationByIndex,
+  clearAllCombinations,
+  syncFromSupabase,
+  syncToSupabase,
+}
+
+// Auto-sync on load
+console.log('🚀 Starting auto-sync...')
+syncToSupabase().then(() => {
+  syncFromSupabase()
 })
 
-// Fallback: Hide loader after 5 seconds if something goes wrong
-setTimeout(() => {
-  const loader = document.getElementById('dataLoader')
-  if (loader && !loader.classList.contains('hidden')) {
-    console.log(
-      '⚠️ FALLBACK: Hiding loader after 5 seconds - something went wrong'
-    )
-    hideDataLoader()
-  }
-}, 5000)
-
-// More aggressive fallback after 3 seconds
-setTimeout(() => {
-  const loader = document.getElementById('dataLoader')
-  if (loader && !loader.classList.contains('hidden')) {
-    console.log('🚨 EMERGENCY: Force hiding loader after 3 seconds')
-    loader.style.display = 'none'
-    loader.classList.add('hidden')
-  }
-}, 3000)
-
-// Initialize offline indicator immediately
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initOfflineIndicator)
-} else {
-  initOfflineIndicator()
-}
-
-// Initialize offline indicator immediately when script loads
-function initOfflineIndicator() {
-  // Initialize offline indicator - only show when actually offline
-  updateOfflineIndicator(!navigator.onLine)
-
-  // Listen for online/offline events
-  window.addEventListener('online', handleConnectionChange)
-  window.addEventListener('offline', handleConnectionChange)
-
-  console.log(
-    'Offline indicator initialized, current status:',
-    !navigator.onLine ? 'OFFLINE' : 'ONLINE'
-  )
-}
-
-// Add sticky behavior after DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  // Add lotto-active class to body
-  document.body.classList.add('lotto-active')
-
-  // Initialize offline indicator
-  initOfflineIndicator()
-
-  // Add sticky scroll detection
-  setTimeout(() => {
-    const stickyWrapper = document.getElementById('stickyWrapper')
-    if (stickyWrapper) {
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          stickyWrapper.classList.toggle(
-            'is-stuck',
-            entry.intersectionRatio < 1
-          )
-        },
-        { threshold: [1] }
-      )
-      observer.observe(stickyWrapper)
-    }
-
-    // Add scroll direction detection for top bar animation
-    let lastScrollTop = 0
-    let ticking = false
-    const topNav = document.querySelector('.topNav')
-    const hamburgerMenu = document.getElementById('hamburger-menu')
-
-    function updateTopBarVisibility() {
-      // Since we're inside the lotto content, use document scroll
-      const scrollTop =
-        document.documentElement.scrollTop ||
-        document.body.scrollTop ||
-        window.pageYOffset ||
-        0
-
-      if (scrollTop > lastScrollTop && scrollTop > 100) {
-        // Scrolling down - hide top bar
-        if (topNav) topNav.classList.add('hidden')
-        if (hamburgerMenu) hamburgerMenu.classList.add('hidden')
-      } else {
-        // Scrolling up - show top bar
-        if (topNav) topNav.classList.remove('hidden')
-        if (hamburgerMenu) hamburgerMenu.classList.remove('hidden')
-      }
-
-      lastScrollTop = scrollTop <= 0 ? 0 : scrollTop
-      ticking = false
-    }
-
-    // Throttle scroll events for performance
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(updateTopBarVisibility)
-        ticking = true
-      }
-    }
-
-    // Attach scroll listener to document since content is loaded dynamically
-    document.addEventListener('scroll', handleScroll, true)
-    window.addEventListener('scroll', handleScroll, true)
-  }, 500) // Small delay to ensure elements are rendered
+// Listen for online/offline events
+window.addEventListener('online', () => {
+  console.log('🌐 Back online - syncing...')
+  syncToSupabase().then(() => {
+    syncFromSupabase()
+  })
 })
+
+window.addEventListener('offline', () => {
+  console.log('📱 Gone offline')
+})
+
+console.log('✅ Enhanced script loaded successfully!')

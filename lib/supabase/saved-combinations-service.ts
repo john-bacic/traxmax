@@ -104,21 +104,62 @@ export const getNumberAnalytics = async (): Promise<NumberAnalytics[]> => {
   }
 };
 
-// Sync local storage to Supabase (for migration)
+// Sync local storage to Supabase (for migration) - ONLY real numberSequences
 export const syncLocalToSupabase = async () => {
   try {
-    const localData = localStorage.getItem('offline-lotto-combinations');
-    if (!localData) return;
+    console.log('🔄 Checking for real numberSequences to sync...');
     
-    const combinations: number[][] = JSON.parse(localData);
-    
-    for (const numbers of combinations) {
-      await saveCombination(numbers);
+    // Check for real numberSequences (this is the actual saved data)
+    const numberSequences = localStorage.getItem('numberSequences');
+    if (!numberSequences) {
+      console.log('ℹ️ No numberSequences found in localStorage');
+      return;
     }
     
-    // Clear local storage after successful sync
-    localStorage.removeItem('offline-lotto-combinations');
+    let realCombinations: number[][];
+    try {
+      realCombinations = JSON.parse(numberSequences);
+      console.log('📊 Found real numberSequences:', realCombinations);
+    } catch (parseError) {
+      console.error('❌ Error parsing numberSequences:', parseError);
+      return;
+    }
+    
+    // Validate the data format
+    if (!Array.isArray(realCombinations) || realCombinations.length === 0) {
+      console.log('ℹ️ No valid numberSequences to sync');
+      return;
+    }
+    
+    // Get existing combinations to avoid duplicates
+    const existingCombinations = await getUserCombinations();
+    const existingNumbers = existingCombinations.map(item => 
+      JSON.stringify(item.numbers.sort((a, b) => a - b))
+    );
+    
+    // Sync only new combinations
+    for (let i = 0; i < realCombinations.length; i++) {
+      const numbers = realCombinations[i];
+      
+      // Validate that this is a proper array of 7 numbers
+      if (!Array.isArray(numbers) || numbers.length !== 7) {
+        console.log(`⏭️ Skipping invalid combination ${i + 1}:`, numbers);
+        continue;
+      }
+      
+      const sortedNumbers = numbers.sort((a, b) => a - b);
+      const numberKey = JSON.stringify(sortedNumbers);
+      
+      if (!existingNumbers.includes(numberKey)) {
+        console.log(`💾 Syncing real combination ${i + 1}:`, numbers);
+        await saveCombination(numbers);
+      } else {
+        console.log(`⏭️ Combination ${i + 1} already exists:`, numbers);
+      }
+    }
+    
+    console.log('✅ Real numberSequences sync complete');
   } catch (error) {
-    console.error('Error syncing local data:', error);
+    console.error('❌ Error syncing real numberSequences:', error);
   }
 }; 

@@ -371,7 +371,11 @@ function setupSaveOverride() {
         Array.isArray(sequence)
       )
 
-      // Parse the sequence and ensure integers
+      // First, call the original function to maintain animations and UI updates
+      originalSave(sequence)
+      console.log('✅ Original save function completed (animations preserved)')
+
+      // Then, parse the sequence and sync to Supabase
       let numbers
       if (Array.isArray(sequence)) {
         numbers = sequence.map((n) => parseInt(n, 10))
@@ -384,8 +388,18 @@ function setupSaveOverride() {
 
       console.log('🔢 Parsed numbers as integers:', numbers)
 
-      // Save using our new function
-      saveNewCombination(numbers)
+      // Sync to Supabase if online
+      if (navigator.onLine) {
+        saveCombination(numbers)
+          .then(() => {
+            console.log('✅ Synced to Supabase successfully')
+          })
+          .catch((error) => {
+            console.error('❌ Supabase sync failed:', error)
+          })
+      } else {
+        console.log('📱 Offline - Supabase sync skipped')
+      }
     }
 
     console.log('🔧 Override installed successfully!')
@@ -430,21 +444,37 @@ function setupDeleteOverride() {
       console.log('🚨 ENHANCED DELETE OVERRIDE CALLED! 🚨')
       console.log('🗑️ Original delete called with:', sequenceToRemove)
 
-      // Find the index of this sequence in localStorage
-      const sequences = getNumberSequences()
-      const indexToDelete = sequences.findIndex(
-        (seq) =>
-          JSON.stringify(seq.sort((a, b) => a - b)) ===
-          JSON.stringify(sequenceToRemove.sort((a, b) => a - b))
+      // First, call the original function to maintain UI updates
+      originalRemove(sequenceToRemove)
+      console.log(
+        '✅ Original delete function completed (UI updates preserved)'
       )
 
-      if (indexToDelete !== -1) {
-        console.log(`🎯 Found sequence at index ${indexToDelete}, deleting...`)
-        deleteCombinationByIndex(indexToDelete)
+      // Then, sync deletion to Supabase if online
+      if (navigator.onLine) {
+        // Find and delete from Supabase
+        getUserCombinations()
+          .then((supabaseCombinations) => {
+            const matchingCombination = supabaseCombinations.find(
+              (combo) =>
+                JSON.stringify(combo.numbers.sort((a, b) => a - b)) ===
+                JSON.stringify(sequenceToRemove.sort((a, b) => a - b))
+            )
+
+            if (matchingCombination) {
+              return deleteCombination(matchingCombination.id)
+            } else {
+              console.log('⚠️ Combination not found in Supabase')
+            }
+          })
+          .then(() => {
+            console.log('✅ Deleted from Supabase successfully')
+          })
+          .catch((error) => {
+            console.error('❌ Supabase delete failed:', error)
+          })
       } else {
-        console.log('❌ Sequence not found in localStorage')
-        // Call original function as fallback
-        originalRemove(sequenceToRemove)
+        console.log('📱 Offline - Supabase delete skipped')
       }
     }
     return true

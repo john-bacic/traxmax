@@ -201,28 +201,19 @@ async function loadInitialDataFromSupabase() {
       `📊 Found ${supabaseCombinations.length} combinations in Supabase`
     )
 
-    if (supabaseCombinations.length > 0) {
-      // Convert to numberSequences format
-      const sequences = supabaseCombinations.map((combo) => combo.numbers)
-
-      // Only update if different from local
-      if (JSON.stringify(sequences) !== JSON.stringify(localSequences)) {
-        console.log('🔄 Supabase data differs from local, updating...')
-        setNumberSequences(sequences)
-      } else {
-        console.log('✅ Local and Supabase data are in sync')
-      }
-    } else if (localSequences.length > 0) {
-      console.log('📤 No data in Supabase but have local data, syncing up...')
-      // Sync local data to Supabase with duplicate checking
-      let syncCount = 0
+    // Always check if local has more data to sync, regardless of Supabase state
+    if (localSequences.length > 0) {
+      console.log(
+        '📤 Local data found, checking what needs to sync to Supabase...'
+      )
 
       // Get existing combinations once at the start
-      let existingCombos = await getUserCombinations()
+      let existingCombos = supabaseCombinations
       console.log(
         `🔍 Found ${existingCombos.length} existing combinations in Supabase`
       )
 
+      let syncCount = 0
       for (const numbers of localSequences) {
         if (Array.isArray(numbers) && numbers.length === 7) {
           // Check if this combination already exists
@@ -240,12 +231,28 @@ async function loadInitialDataFromSupabase() {
             // Add to existing combos to prevent duplicates in the same sync
             existingCombos.push({ numbers: numbers })
           } else {
-            console.log(`⏭️ Skipping duplicate: ${JSON.stringify(numbers)}`)
+            console.log(`⏭️ Already in Supabase: ${JSON.stringify(numbers)}`)
           }
         }
       }
-      console.log(`✅ Synced ${syncCount} new combinations to Supabase`)
-    } else {
+
+      if (syncCount > 0) {
+        console.log(`✅ Synced ${syncCount} new combinations to Supabase`)
+      } else {
+        console.log('✅ All local combinations already in Supabase')
+      }
+    } else if (supabaseCombinations.length > 0) {
+      console.log(
+        '📥 No local data but Supabase has data, loading from Supabase...'
+      )
+      // Convert to numberSequences format
+      const sequences = supabaseCombinations.map((combo) => combo.numbers)
+      setNumberSequences(sequences)
+      console.log(`📥 Loaded ${sequences.length} combinations from Supabase`)
+    } else if (
+      localSequences.length === 0 &&
+      supabaseCombinations.length === 0
+    ) {
       console.log('📝 No data in either local or Supabase')
     }
 
@@ -376,6 +383,22 @@ window.enhancedLotto = {
   clearAllCombinations,
   loadDataFromSupabase: loadInitialDataFromSupabase, // Manual load only
   manualSyncToSupabase,
+
+  // Test functions
+  testSave: async () => {
+    const testNumbers = [7, 14, 21, 28, 35, 42, 49]
+    console.log('🧪 Testing save with:', testNumbers)
+    const result = await saveNewCombination(testNumbers)
+    console.log('🧪 Save result:', result)
+    return result
+  },
+
+  testLocalStorage: () => {
+    console.log('🧪 Current localStorage numberSequences:')
+    console.log(localStorage.getItem('numberSequences'))
+    console.log('🧪 Parsed:')
+    console.log(getNumberSequences())
+  },
 }
 
 // Enhanced script loaded - load initial data

@@ -171,6 +171,42 @@ async function clearAllCombinations() {
 // Flag to prevent multiple initial syncs
 let initialSyncCompleted = false
 
+// Load existing data from Supabase WITHOUT syncing local data back
+async function loadExistingDataOnly() {
+  if (!navigator.onLine) {
+    console.log('📱 Offline - using local data only')
+    refreshDisplay()
+    return
+  }
+
+  try {
+    console.log('📥 Loading existing combinations from Supabase...')
+
+    // Get current Supabase data
+    const supabaseCombinations = await getUserCombinations()
+    console.log(
+      `📊 Found ${supabaseCombinations.length} combinations in Supabase`
+    )
+
+    if (supabaseCombinations.length > 0) {
+      // Convert to numberSequences format and load to localStorage
+      const sequences = supabaseCombinations.map((combo) => combo.numbers)
+      setNumberSequences(sequences)
+      console.log(`📥 Loaded ${sequences.length} combinations from Supabase`)
+    } else {
+      console.log('📝 No existing data in Supabase')
+    }
+
+    // Always refresh display
+    refreshDisplay()
+    console.log('✅ Data loaded successfully (display only - no sync)')
+  } catch (error) {
+    console.error('❌ Error loading data from Supabase:', error)
+    console.log('📱 Using local data only')
+    refreshDisplay()
+  }
+}
+
 // Load initial data from Supabase (one-time on startup)
 async function loadInitialDataFromSupabase() {
   if (initialSyncCompleted) {
@@ -445,10 +481,11 @@ console.log('🔍 Available window functions:', {
     : typeof window.lottoMaxWinningNumbers2023,
 })
 
-// Load initial data from Supabase and sync with local
+// Load existing data from Supabase on startup (one-way: Supabase → localStorage)
+// NO syncing localStorage → Supabase on page load
 setTimeout(() => {
-  console.log('📥 Starting initial data load...')
-  loadInitialDataFromSupabase()
+  console.log('📥 Loading existing data from Supabase to display...')
+  loadExistingDataOnly()
 }, 1000) // Wait 1 second for other scripts to initialize
 
 // Listen for online/offline events

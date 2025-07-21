@@ -2467,6 +2467,22 @@ function animateSavedNumbersTable(direction, overlapColumns) {
     .querySelector('table')
   if (!savedNumbersTable) return
 
+  // Check if table has rows before accessing them
+  if (!savedNumbersTable.rows || savedNumbersTable.rows.length === 0) {
+    console.log('No rows in saved numbers table to animate')
+    return
+  }
+
+  // Check if first row has cells
+  if (
+    !savedNumbersTable.rows[0] ||
+    !savedNumbersTable.rows[0].cells ||
+    savedNumbersTable.rows[0].cells.length === 0
+  ) {
+    console.log('No cells in first row to animate')
+    return
+  }
+
   let delay = 50
   const delayIncrement = 0 // Time to wait before changing to the next column
   const colorChangeDuration = 50 // Time to keep the color changed

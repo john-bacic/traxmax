@@ -113,8 +113,8 @@ async function deleteCombinationByIndex(index) {
         const supabaseCombinations = await getUserCombinations()
         const matchingCombination = supabaseCombinations.find(
           (combo) =>
-            JSON.stringify(combo.numbers.sort()) ===
-            JSON.stringify(numbersToDelete.sort())
+            JSON.stringify(combo.numbers.sort((a, b) => a - b)) ===
+            JSON.stringify(numbersToDelete.sort((a, b) => a - b))
         )
 
         if (matchingCombination) {
@@ -216,11 +216,11 @@ async function loadInitialDataFromSupabase() {
       let syncCount = 0
       for (const numbers of localSequences) {
         if (Array.isArray(numbers) && numbers.length === 7) {
-          // Check if this combination already exists
+          // Check if this combination already exists (with proper numeric sorting)
           const alreadyExists = existingCombos.some(
             (combo) =>
-              JSON.stringify([...combo.numbers].sort()) ===
-              JSON.stringify([...numbers].sort())
+              JSON.stringify([...combo.numbers].sort((a, b) => a - b)) ===
+              JSON.stringify([...numbers].sort((a, b) => a - b))
           )
 
           if (!alreadyExists) {

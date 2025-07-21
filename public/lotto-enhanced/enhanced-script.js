@@ -312,11 +312,28 @@ async function manualSyncToSupabase() {
 
 // Override the original save function (with retry mechanism)
 function setupSaveOverride() {
+  console.log(
+    '🔍 Checking for window.saveToLocalStorage...',
+    typeof window.saveToLocalStorage
+  )
+
   if (window.saveToLocalStorage) {
     console.log('✅ Found window.saveToLocalStorage, setting up override')
+    console.log(
+      '📋 Original function:',
+      window.saveToLocalStorage.toString().substring(0, 100) + '...'
+    )
+
     const originalSave = window.saveToLocalStorage
     window.saveToLocalStorage = function (sequence) {
+      console.log('🚨 ENHANCED SAVE OVERRIDE CALLED! 🚨')
       console.log('🔄 Original save called with:', sequence)
+      console.log(
+        '🔄 Type:',
+        typeof sequence,
+        'Array:',
+        Array.isArray(sequence)
+      )
 
       // Parse the sequence and ensure integers
       let numbers
@@ -334,9 +351,21 @@ function setupSaveOverride() {
       // Save using our new function
       saveNewCombination(numbers)
     }
+
+    console.log('🔧 Override installed successfully!')
+    console.log(
+      '📋 New function:',
+      window.saveToLocalStorage.toString().substring(0, 100) + '...'
+    )
     return true
   } else {
     console.log('⏳ window.saveToLocalStorage not ready yet, will retry...')
+    console.log(
+      '🔍 Available window functions:',
+      Object.keys(window).filter(
+        (key) => key.includes('save') || key.includes('local')
+      )
+    )
     return false
   }
 }

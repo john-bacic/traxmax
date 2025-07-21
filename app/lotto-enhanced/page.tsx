@@ -516,6 +516,39 @@ export default function LottoEnhanced() {
               </>
             )}
             
+            {/* Analytics link for all users */}
+            <button
+              onClick={() => router.push('/pwa-test/analytics')}
+              style={{
+                width: '100%',
+                background: 'rgba(25, 118, 210, 0.8)',
+                border: '1px solid rgba(25, 118, 210, 0.5)',
+                color: '#ffffff',
+                padding: '12px 0',
+                minWidth: '100%',
+                cursor: 'pointer',
+                marginTop: '10px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                boxSizing: 'border-box'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(25, 118, 210, 1)';
+                e.currentTarget.style.borderColor = 'rgba(25, 118, 210, 0.8)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(25, 118, 210, 0.8)';
+                e.currentTarget.style.borderColor = 'rgba(25, 118, 210, 0.5)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              📊 View Number Analytics
+            </button>
+
             {/* Game link for all users - positioned last */}
             <button
               onClick={() => router.push('/game')}

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Partial Number Save</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        button {
+            background: #009eba;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0078a3;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 5px;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Partial Number Save</h1>
+    <p>Testing if we can save 1-7 numbers (not just exactly 7)</p>
+
+    <div class="test-section">
+        <h3>Test Cases</h3>
+        <button onclick="testSave([5])">Save 1 number: [5]</button>
+        <button onclick="testSave([1, 15])">Save 2 numbers: [1, 15]</button>
+        <button onclick="testSave([7, 14, 21])">Save 3 numbers: [7, 14, 21]</button>
+        <button onclick="testSave([3, 12, 25, 33])">Save 4 numbers: [3, 12, 25, 33]</button>
+        <button onclick="testSave([2, 8, 19, 28, 41])">Save 5 numbers: [2, 8, 19, 28, 41]</button>
+        <button onclick="testSave([4, 11, 22, 31, 39, 47])">Save 6 numbers: [4, 11, 22, 31, 39, 47]</button>
+        <button onclick="testSave([1, 9, 17, 24, 35, 42, 49])">Save 7 numbers: [1, 9, 17, 24, 35, 42, 49]</button>
+        
+        <button onclick="getAllSaved()" style="background: #4CAF50;">📋 Get All Saved</button>
+        <button onclick="clearAll()" style="background: #f44336;">🗑️ Clear All</button>
+    </div>
+
+    <div id="output" class="result">
+        <p>Click buttons above to test saving different number counts...</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    <script type="module" src="/lib/supabase/data-manager.js"></script>
+    
+    <script type="module">
+        // Initialize data manager
+        let dataManager;
+        
+        async function initializeDataManager() {
+            try {
+                window.SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+                window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+                
+                const { LottoDataManager } = await import('/lib/supabase/data-manager.js');
+                dataManager = new LottoDataManager();
+                await dataManager.initialize();
+                
+                log('✅ Data manager initialized successfully');
+            } catch (error) {
+                log('❌ Failed to initialize data manager: ' + error.message);
+            }
+        }
+
+        function log(message) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+
+        window.testSave = async function(numbers) {
+            if (!dataManager) {
+                log('❌ Data manager not initialized');
+                return;
+            }
+
+            log(`🧪 Testing save with ${numbers.length} numbers: [${numbers.join(', ')}]`);
+            
+            try {
+                const result = await dataManager.saveNumbers(numbers);
+                if (result.success) {
+                    log(`<span class="success">✅ Successfully saved ${numbers.length} numbers!</span>`);
+                } else {
+                    log(`<span class="error">❌ Save failed: ${result.error}</span>`);
+                }
+            } catch (error) {
+                log(`<span class="error">❌ Error: ${error.message}</span>`);
+            }
+        };
+
+        window.getAllSaved = async function() {
+            if (!dataManager) {
+                log('❌ Data manager not initialized');
+                return;
+            }
+
+            try {
+                const sequences = await dataManager.loadNumbers();
+                log(`📋 Found ${sequences.length} saved sequences:`);
+                sequences.forEach((seq, index) => {
+                    log(`   ${index + 1}. [${seq.join(', ')}] (${seq.length} numbers)`);
+                });
+            } catch (error) {
+                log(`<span class="error">❌ Error loading: ${error.message}</span>`);
+            }
+        };
+
+        window.clearAll = async function() {
+            if (!dataManager) {
+                log('❌ Data manager not initialized');
+                return;
+            }
+
+            try {
+                // Clear localStorage
+                localStorage.removeItem('numberSequences');
+                log('🗑️ Cleared all saved sequences');
+            } catch (error) {
+                log(`<span class="error">❌ Error clearing: ${error.message}</span>`);
+            }
+        };
+
+        // Initialize when page loads
+        window.addEventListener('load', initializeDataManager);
+    </script>
+</body>
+</html> 

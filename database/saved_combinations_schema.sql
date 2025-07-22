@@ -2,7 +2,7 @@
 CREATE TABLE saved_combinations (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
-  numbers integer[] NOT NULL CHECK (array_length(numbers, 1) = 7),
+  numbers integer[] NOT NULL CHECK (array_length(numbers, 1) BETWEEN 1 AND 7),
   created_at timestamp with time zone DEFAULT now(),
   name text DEFAULT NULL,
   

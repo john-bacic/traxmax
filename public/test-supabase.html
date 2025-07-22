@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Supabase Connection Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Supabase Connection Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function testConnection() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing...</p>';
+
+            try {
+                console.log('🔧 Testing Supabase connection...');
+                
+                // Test 1: Get user
+                console.log('1. Testing auth...');
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                console.log('Auth result:', { user, authError });
+                
+                // Test 2: Sign in anonymously
+                if (!user) {
+                    console.log('2. Signing in anonymously...');
+                    const { data, error } = await supabaseClient.auth.signInAnonymously();
+                    console.log('Anonymous auth result:', { data, error });
+                }
+
+                // Test 3: Test table access
+                console.log('3. Testing table access...');
+                const { data, error } = await supabaseClient
+                    .from('saved_combinations')
+                    .select('*')
+                    .limit(1);
+                
+                console.log('Table access result:', { data, error });
+
+                // Test 4: Test insert
+                console.log('4. Testing insert...');
+                const { data: insertData, error: insertError } = await supabaseClient
+                    .from('saved_combinations')
+                    .insert([{ numbers: [1,2,3,4,5,6,7], name: 'test' }])
+                    .select()
+                    .single();
+                
+                console.log('Insert result:', { insertData, insertError });
+
+                results.innerHTML = `
+                    <h3>✅ Tests Complete</h3>
+                    <p>Check console for details</p>
+                    <p>Last insert: ${insertData ? 'SUCCESS' : 'FAILED'}</p>
+                    <p>Error: ${insertError ? insertError.message : 'None'}</p>
+                `;
+
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                results.innerHTML = `<h3>❌ Test Failed</h3><p>${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

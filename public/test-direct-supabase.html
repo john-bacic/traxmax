@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Direct Supabase Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Direct Supabase Test (No Auth)</h1>
+    <button onclick="testDirect()">Test Direct Access</button>
+    <button onclick="testWithAuth()">Test With Auth</button>
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        async function testDirect() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing direct access...</p>';
+
+            try {
+                console.log('🔧 Testing direct table access without auth...');
+                
+                // Try direct table access without authentication
+                const { data, error } = await supabaseClient
+                    .from('saved_combinations')
+                    .select('*')
+                    .limit(5);
+                
+                console.log('Direct access result:', { data, error });
+
+                if (error) {
+                    results.innerHTML = `<h3>❌ Direct Access Failed</h3><p>${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`;
+                } else {
+                    results.innerHTML = `<h3>✅ Direct Access Success</h3><p>Found ${data.length} records</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+
+            } catch (error) {
+                console.error('❌ Direct test failed:', error);
+                results.innerHTML = `<h3>❌ Test Failed</h3><p>${error.message}</p>`;
+            }
+        }
+
+        async function testWithAuth() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing with auth...</p>';
+
+            try {
+                console.log('🔧 Testing with authentication...');
+                
+                // Try anonymous auth
+                const { data: authData, error: authError } = await supabaseClient.auth.signInAnonymously();
+                console.log('Auth result:', { authData, authError });
+
+                if (authError) {
+                    results.innerHTML = `<h3>❌ Auth Failed</h3><p>${authError.message}</p><pre>${JSON.stringify(authError, null, 2)}</pre>`;
+                    return;
+                }
+
+                // Now try table access
+                const { data, error } = await supabaseClient
+                    .from('saved_combinations')
+                    .select('*')
+                    .limit(5);
+                
+                console.log('Table access after auth:', { data, error });
+
+                if (error) {
+                    results.innerHTML = `<h3>❌ Table Access Failed</h3><p>${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`;
+                } else {
+                    results.innerHTML = `<h3>✅ Full Test Success</h3><p>Auth + Table access worked! Found ${data.length} records</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                }
+
+            } catch (error) {
+                console.error('❌ Auth test failed:', error);
+                results.innerHTML = `<h3>❌ Test Failed</h3><p>${error.message}</p><pre>${JSON.stringify(error, null, 2)}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Delete Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        #output { border: 1px solid #ccc; padding: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Direct Delete Test - V3</h1>
+    <button onclick="testDelete()">Test Delete Sync</button>
+    <div id="output"></div>
+
+      <script type="module">
+         import { getUserCombinations, deleteCombination } from '../lib/supabase/supabase-sync-v3.js';
+          
+          function log(msg) {
+              console.log(msg);
+              document.getElementById('output').innerHTML += '<p>' + msg + '</p>';
+          }
+          
+          // Make testDelete available globally
+          window.testDelete = async function() {
+              log('🧪 Testing V3 delete sync...');
+              
+              try {
+                  // First get all combinations
+                  const combinations = await getUserCombinations();
+                  log(`📋 Found ${combinations?.length || 0} combinations in Supabase`);
+                  
+                  if (combinations && combinations.length > 0) {
+                      const toDelete = combinations[0];
+                      log(`🗑️ Deleting combination: ${toDelete.id} - ${JSON.stringify(toDelete.numbers)}`);
+                      
+                      const result = await deleteCombination(toDelete.id);
+                      log(`✅ Delete result: ${JSON.stringify(result)}`);
+                      
+                      // Verify deletion
+                      const afterDelete = await getUserCombinations();
+                      log(`📋 After delete: ${afterDelete?.length || 0} combinations remain`);
+                      
+                  } else {
+                      log('⚠️ No combinations found to delete');
+                  }
+                  
+              } catch (error) {
+                  log(`❌ Error: ${error.message}`);
+              }
+          };
+          
+          log('✅ V3 Delete test ready - click button to test');
+      </script>
+</body>
+</html> 

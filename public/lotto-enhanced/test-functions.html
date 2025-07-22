@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Available Functions</title>
+</head>
+<body>
+    <h2>Function Detection Test</h2>
+    <div id="output"></div>
+    
+    <script>
+        function log(msg) {
+            console.log(msg);
+            document.getElementById('output').innerHTML += '<p>' + msg + '</p>';
+        }
+        
+        // Wait for everything to load
+        setTimeout(() => {
+            log('🔍 Testing available functions...');
+            
+            // Check window functions
+            const functionNames = [
+                'saveToLocalStorage',
+                'removeFromLocalStorage', 
+                'clearSavedNumbers',
+                'displaySavedNumbers',
+                'saveNumbers',
+                'deleteNumbers',
+                'saveCombination',
+                'deleteCombination'
+            ];
+            
+            functionNames.forEach(name => {
+                if (window[name]) {
+                    log(`✅ Found: window.${name}`);
+                    if (typeof window[name] === 'function') {
+                        log(`   └─ Type: function`);
+                    } else {
+                        log(`   └─ Type: ${typeof window[name]}`);
+                    }
+                } else {
+                    log(`❌ Missing: window.${name}`);
+                }
+            });
+            
+            // Check all window functions
+            log('\n🔍 All window functions:');
+            const allFunctions = Object.getOwnPropertyNames(window)
+                .filter(name => typeof window[name] === 'function')
+                .filter(name => name.includes('save') || name.includes('remove') || name.includes('delete') || name.includes('clear'))
+                .sort();
+                
+            allFunctions.forEach(name => {
+                log(`🔧 window.${name}`);
+            });
+            
+        }, 5000); // Wait 5 seconds for everything to load
+    </script>
+</body>
+</html> 

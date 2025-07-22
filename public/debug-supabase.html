@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Supabase Connection</title>
+</head>
+<body>
+    <h1>Supabase Connection Debug</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <div id="output"></div>
+    
+    <script type="module">
+        import { testConnection, saveCombination } from './lib/supabase/saved-combinations-service-v2.js'
+        
+        function log(message) {
+            console.log(message)
+            document.getElementById('output').innerHTML += '<p>' + message + '</p>'
+        }
+        
+        window.testConnection = async function() {
+            log('🔧 Testing Supabase connection with V2 service...')
+            
+            try {
+                // Test connection
+                const result = await testConnection()
+                if (result.success) {
+                    log('✅ Connection successful! User: ' + result.userId)
+                    
+                    // Test saving
+                    const testNumbers = [1, 2, 3, 4, 5, 6, 7]
+                    log('🔄 Testing save with: ' + JSON.stringify(testNumbers))
+                    
+                    const saveResult = await saveCombination(testNumbers, 'debug-test')
+                    log('✅ Save success: ' + JSON.stringify(saveResult))
+                    
+                } else {
+                    log('❌ Connection failed: ' + result.error)
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message)
+            }
+        }
+    </script>
+</body>
+</html> 

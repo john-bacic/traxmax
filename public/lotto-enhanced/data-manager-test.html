@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Manager Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .status { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .log { background: #f8f8f8; padding: 10px; margin: 10px 0; border-left: 4px solid #007cba; height: 200px; overflow-y: scroll; }
+        .numbers { background: #e8f5e8; padding: 5px; margin: 2px 0; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Robust Data Manager Test</h1>
+    
+    <div class="status" id="status">Loading...</div>
+    
+    <div>
+        <button onclick="testSave()">Save Test Numbers</button>
+        <button onclick="testDelete()">Delete Last Numbers</button>
+        <button onclick="testSync()">Force Sync</button>
+        <button onclick="showStatus()">Show Status</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <h3>Saved Numbers:</h3>
+    <div id="numbers"></div>
+    
+    <h3>Activity Log:</h3>
+    <div class="log" id="log"></div>
+
+    <script type="module">
+        // Set up Supabase credentials
+        window.SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+        window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+        
+        // Import the data manager
+        import dataManager from '../lib/supabase/data-manager.js';
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        // Set up event listener for data manager events
+        dataManager.addListener((event) => {
+            log(`🔔 Event: ${event.event} - ${JSON.stringify(event.data)}`);
+            updateNumbersDisplay();
+            updateStatus();
+        });
+        
+        function updateStatus() {
+            const status = dataManager.getStatus();
+            document.getElementById('status').innerHTML = `
+                <strong>Status:</strong> ${status.isOnline ? '🟢 Online' : '🔴 Offline'} | 
+                <strong>User:</strong> ${status.user?.id?.substring(0, 8)}... | 
+                <strong>Queue:</strong> ${status.queueSize} items | 
+                <strong>Local:</strong> ${status.localCount} combinations
+            `;
+        }
+        
+        async function updateNumbersDisplay() {
+            const numbers = await dataManager.getAllNumbers();
+            const numbersDiv = document.getElementById('numbers');
+            numbersDiv.innerHTML = numbers.map(nums => 
+                `<div class="numbers">[${nums.join(', ')}]</div>`
+            ).join('');
+        }
+        
+        // Global test functions
+        window.testSave = async function() {
+            const testNumbers = Array.from({length: 7}, () => Math.floor(Math.random() * 49) + 1).sort((a,b) => a-b);
+            log(`💾 Testing save: [${testNumbers.join(', ')}]`);
+            const result = await dataManager.saveNumbers(testNumbers);
+            log(`Result: ${JSON.stringify(result)}`);
+        };
+        
+        window.testDelete = async function() {
+            const numbers = await dataManager.getAllNumbers();
+            if (numbers.length === 0) {
+                log('⚠️ No numbers to delete');
+                return;
+            }
+            const toDelete = numbers[numbers.length - 1];
+            log(`🗑️ Testing delete: [${toDelete.join(', ')}]`);
+            const result = await dataManager.deleteNumbers(toDelete);
+            log(`Result: ${JSON.stringify(result)}`);
+        };
+        
+        window.testSync = async function() {
+            log('🔄 Testing force sync...');
+            await dataManager.processSyncQueue();
+            await dataManager.syncFromSupabase();
+            log('✅ Sync completed');
+        };
+        
+        window.showStatus = function() {
+            const status = dataManager.getStatus();
+            log(`📊 Status: ${JSON.stringify(status, null, 2)}`);
+        };
+        
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+        };
+        
+        // Initialize display
+        setTimeout(() => {
+            updateStatus();
+            updateNumbersDisplay();
+            log('✅ Data Manager Test Page Ready');
+        }, 1000);
+    </script>
+</body>
+</html> 

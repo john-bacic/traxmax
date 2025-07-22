@@ -2152,24 +2152,42 @@ function saveNumbers() {
   reToggleManuallyToggledNumbers()
 }
 
+// Use the robust data manager instead of direct localStorage
 function saveToLocalStorage(sequence) {
-  let existingSequences =
-    JSON.parse(localStorage.getItem('numberSequences')) || []
-  // console.log('Saving sequence:', sequence)
-  existingSequences.push(sequence)
-  localStorage.setItem('numberSequences', JSON.stringify(existingSequences))
+  if (window.lottoDataManager) {
+    return window.lottoDataManager.saveNumbers(sequence)
+  } else {
+    // Fallback to old method if data manager not loaded
+    let existingSequences =
+      JSON.parse(localStorage.getItem('numberSequences')) || []
+    existingSequences.push(sequence)
+    localStorage.setItem('numberSequences', JSON.stringify(existingSequences))
+  }
 }
 
+// Expose to window for enhanced-script.js
+window.saveToLocalStorage = saveToLocalStorage
+
+// Use the robust data manager instead of direct localStorage
 function removeFromLocalStorage(sequenceToRemove) {
-  let existingSequences =
-    JSON.parse(localStorage.getItem('numberSequences')) || []
-  // console.log('Removing sequence:', sequenceToRemove)
-  let updatedSequences = existingSequences.filter(
-    (seq) => JSON.stringify(seq) !== JSON.stringify(sequenceToRemove)
-  )
-  localStorage.setItem('numberSequences', JSON.stringify(updatedSequences))
-  updateSavedRowCount()
+  if (window.lottoDataManager) {
+    window.lottoDataManager.deleteNumbers(sequenceToRemove).then(() => {
+      updateSavedRowCount()
+    })
+  } else {
+    // Fallback to old method if data manager not loaded
+    let existingSequences =
+      JSON.parse(localStorage.getItem('numberSequences')) || []
+    let updatedSequences = existingSequences.filter(
+      (seq) => JSON.stringify(seq) !== JSON.stringify(sequenceToRemove)
+    )
+    localStorage.setItem('numberSequences', JSON.stringify(updatedSequences))
+    updateSavedRowCount()
+  }
 }
+
+// Expose to window for enhanced-script.js
+window.removeFromLocalStorage = removeFromLocalStorage
 
 function populateSavedNumbersFromLocalStorage() {
   let savedNumbersDiv = document.getElementById('savedUmbersID')
@@ -2187,7 +2205,10 @@ function populateSavedNumbersFromLocalStorage() {
   storedSequences.forEach((sequence) => {
     let row = table.insertRow(0) // Insert the new row at the beginning
 
-    sequence.forEach((number) => {
+    // Sort the sequence to ensure lowest to highest order
+    const sortedSequence = [...sequence].sort((a, b) => a - b)
+
+    sortedSequence.forEach((number) => {
       let cell = row.insertCell()
       const numberButton = createNumberButton(number, false)
       cell.appendChild(numberButton)
@@ -2222,7 +2243,7 @@ function populateSavedNumbersFromLocalStorage() {
 
     clearButton.onclick = function () {
       table.deleteRow(row.rowIndex)
-      removeFromLocalStorage(sequence)
+      removeFromLocalStorage(sortedSequence)
     }
     clearCell.appendChild(clearButton)
   })

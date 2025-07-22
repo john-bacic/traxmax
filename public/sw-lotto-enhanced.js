@@ -1,5 +1,5 @@
 // Service Worker for Lotto Enhanced - Comprehensive offline support
-const CACHE_NAME = 'lotto-enhanced-v2'
+const CACHE_NAME = 'lotto-enhanced-v3'
 const OFFLINE_URL = '/lotto-enhanced'
 
 // Essential files to cache for offline functionality
@@ -8,8 +8,8 @@ const urlsToCache = [
   '/lotto-enhanced/lotto.html',
   '/lotto-enhanced/style.css',
   '/lotto-enhanced/script.js',
-  '/lotto-enhanced/enhanced-script.js',
   '/lotto-enhanced/data.js',
+  '/lib/supabase/data-manager.js',
   '/manifest.json',
   '/pwa-test/offline-lotto',
   '/pwa-test',

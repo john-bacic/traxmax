@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Data Manager Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+        .status { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .log { background: #f8f8f8; padding: 10px; margin: 10px 0; border-left: 4px solid #007cba; height: 200px; overflow-y: scroll; }
+    </style>
+</head>
+<body>
+    <h1>Simple Data Manager Test</h1>
+    
+    <div class="status" id="status">Loading Supabase...</div>
+    
+    <div>
+        <button onclick="testSave()" id="saveBtn" disabled>Save Test Numbers</button>
+        <button onclick="testDelete()" id="deleteBtn" disabled>Delete Last Numbers</button>
+        <button onclick="showStatus()" id="statusBtn" disabled>Show Status</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+
+    <!-- Load Supabase from CDN first -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function enableButtons() {
+            document.getElementById('saveBtn').disabled = false;
+            document.getElementById('deleteBtn').disabled = false;
+            document.getElementById('statusBtn').disabled = false;
+        }
+
+        // Wait for Supabase to load, then load our data manager
+        if (window.supabase) {
+            log('✅ Supabase CDN loaded');
+            
+            // Set up Supabase credentials
+            window.SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+            window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+            
+            // Now load the data manager
+            const script = document.createElement('script');
+            script.src = '/lib/supabase/data-manager.js?t=' + Date.now();
+            script.type = 'module';
+            script.onload = () => {
+                log('✅ Data manager loaded!');
+                document.getElementById('status').innerHTML = '🟢 Ready - Data Manager Loaded';
+                enableButtons();
+                
+                // Set up event listener
+                if (window.lottoDataManager) {
+                    window.lottoDataManager.addListener((event) => {
+                        log(`🔔 Event: ${event.event} - ${JSON.stringify(event.data)}`);
+                    });
+                }
+            };
+            script.onerror = () => {
+                log('❌ Failed to load data manager');
+                document.getElementById('status').innerHTML = '🔴 Failed to load data manager';
+            };
+            document.body.appendChild(script);
+        } else {
+            log('❌ Supabase CDN not loaded');
+            document.getElementById('status').innerHTML = '🔴 Supabase failed to load';
+        }
+
+        // Test functions
+        window.testSave = async function() {
+            if (!window.lottoDataManager) {
+                log('❌ Data manager not ready');
+                return;
+            }
+            
+            const testNumbers = Array.from({length: 7}, () => Math.floor(Math.random() * 49) + 1).sort((a,b) => a-b);
+            log(`💾 Testing save: [${testNumbers.join(', ')}]`);
+            
+            try {
+                const result = await window.lottoDataManager.saveNumbers(testNumbers);
+                log(`✅ Save result: ${JSON.stringify(result)}`);
+            } catch (error) {
+                log(`❌ Save failed: ${error.message}`);
+            }
+        };
+
+        window.testDelete = async function() {
+            if (!window.lottoDataManager) {
+                log('❌ Data manager not ready');
+                return;
+            }
+            
+            try {
+                const numbers = await window.lottoDataManager.getAllNumbers();
+                if (numbers.length === 0) {
+                    log('⚠️ No numbers to delete');
+                    return;
+                }
+                
+                const toDelete = numbers[numbers.length - 1];
+                log(`🗑️ Testing delete: [${toDelete.join(', ')}]`);
+                
+                const result = await window.lottoDataManager.deleteNumbers(toDelete);
+                log(`✅ Delete result: ${JSON.stringify(result)}`);
+            } catch (error) {
+                log(`❌ Delete failed: ${error.message}`);
+            }
+        };
+
+        window.showStatus = function() {
+            if (!window.lottoDataManager) {
+                log('❌ Data manager not ready');
+                return;
+            }
+            
+            const status = window.lottoDataManager.getStatus();
+            log(`📊 Status: ${JSON.stringify(status, null, 2)}`);
+        };
+    </script>
+</body>
+</html> 

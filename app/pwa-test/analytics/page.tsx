@@ -278,6 +278,9 @@ export default function LottoAnalytics() {
               
               if (!isFirst) return null; // Only show first occurrence of each frequency
               
+              // Sort numbers in ascending order
+              const sortedNumbers = sameFrequency.sort((a, b) => a.number - b.number);
+              
               // Use the percentage already calculated by the analytics service
               const percentage = item.percentage.toFixed(1);
               const isZeroFreq = item.frequency === 0;
@@ -287,16 +290,16 @@ export default function LottoAnalytics() {
                   <span className="frequency-number">{item.frequency}x</span>
                   <span className="frequency-colon">:</span>
                   <span className="frequency-percentage" style={{ color: isZeroFreq ? '#ff69b4' : '#c2b2ff' }}>{percentage}%</span>
-                                      <span className="frequency-numbers">
-                      {sameFrequency.map((num, index) => (
-                        <span key={num.number} style={{ color: isZeroFreq ? '#ff69b4' : '#7e68cf' }}>
-                          {num.number}
-                          {index < sameFrequency.length - 1 && (
-                            <span className="frequency-separator" style={{ color: isZeroFreq ? '#ff69b4' : '#7e68cf' }}> • </span>
-                          )}
-                        </span>
-                      ))}
-                    </span>
+                  <span className="frequency-numbers">
+                    {sortedNumbers.map((num, index) => (
+                      <span key={num.number} style={{ color: isZeroFreq ? '#ff69b4' : '#7e68cf' }}>
+                        {num.number}
+                        {index < sortedNumbers.length - 1 && (
+                          <span className="frequency-separator" style={{ color: isZeroFreq ? '#ff69b4' : '#7e68cf' }}> • </span>
+                        )}
+                      </span>
+                    ))}
+                  </span>
                 </div>
               );
             })}

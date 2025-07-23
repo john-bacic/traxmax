@@ -133,7 +133,7 @@ export default function LottoAnalytics() {
            text-shadow: 0px 5px 8px rgba(0, 0, 0, 0.5);
          }
 
-                             .frequency-header-container {
+                                       .frequency-header-container {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -150,6 +150,7 @@ export default function LottoAnalytics() {
            align-items: center;
            justify-content: center;
            padding: 4px;
+           margin-top: -15px;
            transition: all 0.2s ease;
          }
 

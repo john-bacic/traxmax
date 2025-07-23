@@ -123,7 +123,7 @@ export default function LottoAnalytics() {
           margin-right: auto;
         }
 
-                 .frequency-header {
+         .frequency-header {
            color: #c2b2ff;
            font-family: 'Lexend', sans-serif;
            font-weight: 700;
@@ -131,6 +131,31 @@ export default function LottoAnalytics() {
            margin: 0 0 20px 0;
            text-align: left;
            text-shadow: 0px 5px 8px rgba(0, 0, 0, 0.5);
+         }
+
+                             .frequency-header-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+          }
+
+         .frequency-refresh-button {
+           background: none;
+           color: #c2b2ff;
+           border: none;
+           cursor: pointer;
+           font-size: 1.25rem;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           padding: 4px;
+           transition: all 0.2s ease;
+         }
+
+         .frequency-refresh-button:hover {
+           color: #ffffff;
+           transform: scale(1.1);
          }
 
          .total-saved {
@@ -223,7 +248,12 @@ export default function LottoAnalytics() {
       {/* Main Content */}
       <div className="analytics-container">
         
-        <div className="frequency-header">number frequency</div>
+        <div className="frequency-header-container">
+          <div className="frequency-header">number frequency</div>
+          <button className="frequency-refresh-button" onClick={loadAnalytics} title="Refresh Analytics">
+            ↻
+          </button>
+        </div>
 
         {loading ? (
           <div className="loading">Loading analytics...</div>

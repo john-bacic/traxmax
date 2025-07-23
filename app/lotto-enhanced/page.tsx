@@ -3,6 +3,37 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
+// Error Boundary Component
+function ErrorBoundary({ children, fallback }: { children: React.ReactNode, fallback: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = (error: ErrorEvent) => {
+      console.error('Error caught by boundary:', error);
+      setHasError(true);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
+  if (hasError) {
+    return <>{fallback}</>;
+  }
+
+  return <>{children}</>;
+}
+
 export default function LottoEnhanced() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -10,9 +41,105 @@ export default function LottoEnhanced() {
   const [isOnline, setIsOnline] = useState(true);
   const [isOfflineReady, setIsOfflineReady] = useState(false);
   const [lottoLoaded, setLottoLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [gitInfo, setGitInfo] = useState<{commit: string, branch: string}>({commit: 'loading...', branch: 'loading...'});
   const router = useRouter();
   const supabase = createClient();
+
+  // Error fallback component
+  const ErrorFallback = () => (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+      color: 'white',
+      padding: '20px',
+      textAlign: 'center',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '2rem', marginBottom: '20px', color: '#CCFF00' }}>⚠️ Something went wrong</h1>
+        <p style={{ marginBottom: '30px', opacity: 0.8, lineHeight: '1.5' }}>
+          The lotto tracker encountered an error. This usually happens due to a loading issue.
+        </p>
+        <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#CCFF00',
+              color: '#000',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            🔄 Refresh Page
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            style={{
+              background: '#7E68CF',
+              color: '#fff',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            🏠 Go Home
+          </button>
+          <button
+            onClick={() => router.push('/pwa-test/offline-lotto')}
+            style={{
+              background: '#FF6B6B',
+              color: '#fff',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              border: 'none',
+              fontWeight: '600',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            🎯 Offline Lotto
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  useEffect(() => {
+    // Global error handlers
+    const handleError = (error: ErrorEvent) => {
+      console.error('Global error:', error);
+      if (error.message.includes('Script error') || error.message.includes('Loading')) {
+        setHasError(true);
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled rejection:', event.reason);
+      if (event.reason?.message?.includes('Loading') || event.reason?.message?.includes('fetch')) {
+        setHasError(true);
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
 
   useEffect(() => {
     // Register service worker for offline functionality
@@ -107,11 +234,19 @@ export default function LottoEnhanced() {
   }, []);
 
   useEffect(() => {
-    if (!loading && user && !lottoLoaded) {
-      loadOriginalLotto();
-      setLottoLoaded(true);
+    if (!loading && user && !lottoLoaded && !hasError) {
+      // Add a small delay to ensure DOM is ready
+      setTimeout(() => {
+        try {
+          loadOriginalLotto();
+          setLottoLoaded(true);
+        } catch (error) {
+          console.error('Error loading lotto:', error);
+          setHasError(true);
+        }
+      }, 100);
     }
-  }, [loading, user, lottoLoaded]);
+  }, [loading, user, lottoLoaded, hasError]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -192,11 +327,15 @@ export default function LottoEnhanced() {
   const loadOriginalLotto = () => {
     console.log('🔄 loadOriginalLotto called');
     
-    (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://slyscrmgrrjzzclbbdia.supabase.co';
-    (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
-    
-    const container = document.getElementById('lotto-container');
-    if (container) {
+    try {
+      (window as any).SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://slyscrmgrrjzzclbbdia.supabase.co';
+      (window as any).SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+      
+      const container = document.getElementById('lotto-container');
+      if (!container) {
+        throw new Error('Lotto container not found');
+      }
+
       const loadLottoContent = async () => {
         try {
           const response = await fetch('/lotto-enhanced/lotto.html');
@@ -204,69 +343,25 @@ export default function LottoEnhanced() {
             throw new Error('Offline - using cached content');
           }
           const html = await response.text();
-          container.innerHTML = html;
           
-          // Clean up existing scripts
-          const existingMainScripts = document.querySelectorAll('script[src*="/lotto-enhanced/script.js"]');
-          existingMainScripts.forEach(script => script.remove());
-          
-          const existingDataScripts = document.querySelectorAll('script[src*="/lotto-enhanced/data.js"]');
-          existingDataScripts.forEach(script => script.remove());
-          
-          if ((window as any).lottoMaxWinningNumbers2023) {
-            delete (window as any).lottoMaxWinningNumbers2023;
-          }
-          
-          // Load scripts in sequence: Supabase CDN → Data Manager → Data.js → Script.js
-          console.log('📥 Loading Supabase CDN...');
-          const supabaseScript = document.createElement('script');
-          supabaseScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js';
-          supabaseScript.onload = () => {
-            console.log('✅ Supabase CDN loaded successfully');
+          // Safely set innerHTML with error handling
+          if (container) {
+            container.innerHTML = html;
             
-            console.log('📥 Loading data manager...');
-            const dataManagerScript = document.createElement('script');
-            dataManagerScript.src = `/lib/supabase/data-manager.js?t=${Date.now()}`;
-            dataManagerScript.type = 'module';
-            dataManagerScript.onload = () => {
-              console.log('✅ Data manager loaded successfully');
-              
-              console.log('📥 Loading fresh data.js');
-              const dataScript = document.createElement('script');
-              dataScript.src = `/lotto-enhanced/data.js?t=${Date.now()}`;
-              dataScript.type = 'module';
-              dataScript.onload = () => {
-                console.log('✅ Data script loaded successfully');
-              
-                console.log('📥 Loading fresh script.js');
-                const mainScript = document.createElement('script');
-                mainScript.src = `/lotto-enhanced/script.js?t=${Date.now()}`;
-                mainScript.type = 'module';
-                mainScript.onload = () => {
-                  console.log('✅ Main script loaded successfully');
-                  console.log('🎯 All scripts loaded - data manager ready!');
-                };
-                mainScript.onerror = (error) => {
-                  console.error('❌ Main script failed to load:', error);
-                };
-                document.body.appendChild(mainScript);
-              };
-              dataScript.onerror = (error) => {
-                console.error('❌ Data script failed to load:', error);
-              };
-              document.body.appendChild(dataScript);
-            };
-            dataManagerScript.onerror = (error) => {
-              console.error('❌ Data manager script failed to load:', error);
-            };
-            document.body.appendChild(dataManagerScript);
-          };
-          supabaseScript.onerror = (error) => {
-            console.error('❌ Supabase CDN failed to load:', error);
-          };
-          document.body.appendChild(supabaseScript);
-          
-          setupScrollHandlers(container);
+            // Clean up existing scripts
+            const existingMainScripts = document.querySelectorAll('script[src*="/lotto-enhanced/script.js"]');
+            existingMainScripts.forEach(script => script.remove());
+            
+            const existingDataScripts = document.querySelectorAll('script[src*="/lotto-enhanced/data.js"]');
+            existingDataScripts.forEach(script => script.remove());
+            
+            if ((window as any).lottoMaxWinningNumbers2023) {
+              delete (window as any).lottoMaxWinningNumbers2023;
+            }
+            
+            // Load scripts in sequence with error handling
+            loadScriptsSequence(container);
+          }
         } catch (error) {
           console.log('Loading from cache or offline mode');
           loadOfflineFallback(container);
@@ -274,7 +369,65 @@ export default function LottoEnhanced() {
       };
 
       loadLottoContent();
+    } catch (error) {
+      console.error('Error in loadOriginalLotto:', error);
+      setHasError(true);
     }
+  };
+
+  const loadScriptsSequence = (container: HTMLElement) => {
+    console.log('📥 Loading Supabase CDN...');
+    const supabaseScript = document.createElement('script');
+    supabaseScript.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js';
+    supabaseScript.onload = () => {
+      console.log('✅ Supabase CDN loaded successfully');
+      
+      console.log('📥 Loading data manager...');
+      const dataManagerScript = document.createElement('script');
+      dataManagerScript.src = `/lib/supabase/data-manager.js?t=${Date.now()}`;
+      dataManagerScript.type = 'module';
+      dataManagerScript.onload = () => {
+        console.log('✅ Data manager loaded successfully');
+        
+        console.log('📥 Loading fresh data.js');
+        const dataScript = document.createElement('script');
+        dataScript.src = `/lotto-enhanced/data.js?t=${Date.now()}`;
+        dataScript.type = 'module';
+        dataScript.onload = () => {
+          console.log('✅ Data script loaded successfully');
+        
+          console.log('📥 Loading fresh script.js');
+          const mainScript = document.createElement('script');
+          mainScript.src = `/lotto-enhanced/script.js?t=${Date.now()}`;
+          mainScript.type = 'module';
+          mainScript.onload = () => {
+            console.log('✅ Main script loaded successfully');
+            console.log('🎯 All scripts loaded - data manager ready!');
+            setupScrollHandlers(container);
+          };
+          mainScript.onerror = (error) => {
+            console.error('❌ Main script failed to load:', error);
+            setHasError(true);
+          };
+          document.body.appendChild(mainScript);
+        };
+        dataScript.onerror = (error) => {
+          console.error('❌ Data script failed to load:', error);
+          setHasError(true);
+        };
+        document.body.appendChild(dataScript);
+      };
+      dataManagerScript.onerror = (error) => {
+        console.error('❌ Data manager script failed to load:', error);
+        setHasError(true);
+      };
+      document.body.appendChild(dataManagerScript);
+    };
+    supabaseScript.onerror = (error) => {
+      console.error('❌ Supabase CDN failed to load:', error);
+      setHasError(true);
+    };
+    document.body.appendChild(supabaseScript);
   };
 
   const loadOfflineFallback = (container: HTMLElement) => {
@@ -338,6 +491,10 @@ export default function LottoEnhanced() {
     container.addEventListener('scroll', handleContainerScroll);
   };
 
+  if (hasError) {
+    return <ErrorFallback />;
+  }
+
   if (loading) {
     return (
       <div className="loader" style={{
@@ -354,7 +511,7 @@ export default function LottoEnhanced() {
   }
 
   return (
-    <>
+    <ErrorBoundary fallback={<ErrorFallback />}>
       <style jsx global>{`
         html, body {
           overflow: hidden;
@@ -491,6 +648,6 @@ export default function LottoEnhanced() {
       )}
       
       <div id="lotto-container"></div>
-    </>
+    </ErrorBoundary>
   );
 } 

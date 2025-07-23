@@ -1,6 +1,12 @@
+'use client';
+
 import Link from "next/link";
 
 export default function Home() {
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -11,7 +17,43 @@ export default function Home() {
       backgroundColor: '#0a0a0a',
       color: '#ffffff'
     }}>
-      <h1 style={{ fontSize: '3rem', marginBottom: '3rem' }}>TraxMax</h1>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '1rem', 
+        marginBottom: '3rem' 
+      }}>
+        <h1 style={{ fontSize: '3rem', margin: 0 }}>TraxMax</h1>
+        <button
+          onClick={handleRefresh}
+          style={{
+            padding: '0.5rem',
+            backgroundColor: '#333333',
+            color: '#ffffff',
+            border: '1px solid #555555',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '1.2rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '40px',
+            height: '40px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#555555';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#333333';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          title="Refresh page"
+        >
+          ↻
+        </button>
+      </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
         <Link 
           href="/game" 

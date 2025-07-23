@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Save Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: #fff; 
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+        }
+        .log { 
+            background: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button { 
+            background: #cf0; 
+            color: #000; 
+            border: none; 
+            padding: 12px 24px; 
+            margin: 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        button:hover { 
+            background: #b8e000; 
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Supabase Save Test</h1>
+        <p>Testing if saved numbers are properly syncing to Supabase database.</p>
+        
+        <div>
+            <button onclick="testSave()">💾 Test Save Numbers</button>
+            <button onclick="testLoad()">📥 Test Load Numbers</button>
+            <button onclick="testAuth()">🔐 Test Authentication</button>
+            <button onclick="clearLog()">🗑️ Clear Log</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <!-- Load Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        // Setup
+        const SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const color = type === 'success' ? '#4CAF50' : 
+                         type === 'error' ? '#f44336' : 
+                         type === 'warning' ? '#ff9800' : '#fff';
+            
+            logElement.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        async function testAuth() {
+            log('🔐 Testing authentication...', 'info');
+            
+            try {
+                // Check if user already exists
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (user) {
+                    log(`✅ User already authenticated: ${user.id}`, 'success');
+                    return user;
+                }
+                
+                // Sign in anonymously
+                log('📝 Signing in anonymously...', 'info');
+                const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+                
+                if (authError) {
+                    log(`❌ Auth error: ${authError.message}`, 'error');
+                    return null;
+                }
+                
+                log(`✅ Anonymous sign-in successful: ${authData.user?.id}`, 'success');
+                return authData.user;
+                
+            } catch (error) {
+                log(`❌ Authentication failed: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        async function testSave() {
+            log('💾 Testing save to Supabase...', 'info');
+            
+            try {
+                // Authenticate first
+                const user = await testAuth();
+                if (!user) {
+                    log('❌ Cannot test save without authentication', 'error');
+                    return;
+                }
+                
+                // Generate test numbers
+                const testNumbers = Array.from({length: 7}, () => Math.floor(Math.random() * 50) + 1)
+                    .sort((a, b) => a - b);
+                
+                log(`🎲 Generated test numbers: [${testNumbers.join(', ')}]`, 'info');
+                
+                // Save to Supabase
+                const { data, error } = await supabase
+                    .from('saved_combinations')
+                    .insert({
+                        numbers: testNumbers,
+                        name: `Test Save ${new Date().getTime()}`
+                    })
+                    .select()
+                    .single();
+                
+                if (error) {
+                    log(`❌ Save error: ${error.message}`, 'error');
+                    log(`🔍 Error details: ${JSON.stringify(error)}`, 'error');
+                    return;
+                }
+                
+                log(`✅ Successfully saved to Supabase!`, 'success');
+                log(`📄 Data: ${JSON.stringify(data)}`, 'success');
+                
+            } catch (error) {
+                log(`❌ Save test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLoad() {
+            log('📥 Testing load from Supabase...', 'info');
+            
+            try {
+                // Authenticate first
+                const user = await testAuth();
+                if (!user) {
+                    log('❌ Cannot test load without authentication', 'error');
+                    return;
+                }
+                
+                // Load from Supabase
+                const { data, error } = await supabase
+                    .from('saved_combinations')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) {
+                    log(`❌ Load error: ${error.message}`, 'error');
+                    return;
+                }
+                
+                log(`✅ Successfully loaded ${data?.length || 0} combinations`, 'success');
+                
+                if (data && data.length > 0) {
+                    data.forEach((combo, index) => {
+                        log(`   ${index + 1}. [${combo.numbers.join(', ')}] - ${combo.created_at}`, 'info');
+                    });
+                } else {
+                    log('ℹ️ No saved combinations found', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ Load test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-run auth test on load
+        window.addEventListener('load', () => {
+            log('🚀 Supabase Save Test initialized', 'info');
+            setTimeout(() => testAuth(), 1000);
+        });
+    </script>
+</body>
+</html> 

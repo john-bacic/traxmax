@@ -66,7 +66,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
-    <script type="module" src="/lib/supabase/data-manager.js"></script>
     
     <script type="module">
         // Initialize data manager
@@ -77,8 +76,11 @@
                 window.SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
                 window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
                 
-                const { LottoDataManager } = await import('/lib/supabase/data-manager.js');
-                dataManager = new LottoDataManager();
+                // Import the data manager module (this will create the global instance)
+                await import('/lib/supabase/data-manager.js');
+                
+                // Use the global instance
+                dataManager = window.lottoDataManager;
                 await dataManager.initialize();
                 
                 log('✅ Data manager initialized successfully');

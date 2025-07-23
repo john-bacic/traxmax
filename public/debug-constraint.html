@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Constraint</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #1a1a1a; color: #fff; }
+        .log { background: #2a2a2a; padding: 15px; border-radius: 8px; margin: 20px 0; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Database Constraint</h1>
+    <button onclick="testConstraint()">Test Constraint</button>
+    <div class="log" id="log"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://slyscrmgrrjzzclbbdia.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc'
+        );
+
+        function log(msg) {
+            document.getElementById('log').innerHTML += `<div>${msg}</div>`;
+            console.log(msg);
+        }
+
+        async function testConstraint() {
+            log('🧪 Testing different number arrays...');
+            
+            const tests = [
+                [1],
+                [1, 2, 3],
+                [35, 39, 43],
+                [1, 2, 3, 4, 5, 6, 7],
+                [51], // Should fail - out of range
+                [], // Should fail - empty
+                [1, 2, 3, 4, 5, 6, 7, 8] // Should fail - too many
+            ];
+
+            for (const numbers of tests) {
+                try {
+                    log(`\n📤 Testing: [${numbers.join(', ')}]`);
+                    
+                    const { data, error } = await supabase
+                        .from('saved_combinations')
+                        .insert({
+                            user_id: null,
+                            numbers: numbers,
+                            name: `Test ${Date.now()}`
+                        })
+                        .select();
+
+                    if (error) {
+                        log(`❌ Error: ${error.message}`);
+                        log(`   Code: ${error.code}`);
+                        log(`   Details: ${error.details}`);
+                    } else {
+                        log(`✅ Success: ${JSON.stringify(data)}`);
+                        // Clean up - delete the test record
+                        await supabase.from('saved_combinations').delete().eq('id', data[0].id);
+                    }
+                } catch (e) {
+                    log(`❌ Exception: ${e.message}`);
+                }
+            }
+        }
+    </script>
+</body>
+</html> 

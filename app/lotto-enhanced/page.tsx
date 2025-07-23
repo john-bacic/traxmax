@@ -144,6 +144,51 @@ export default function LottoEnhanced() {
     fetchGitInfo();
   }, []);
 
+  const handleCacheRefresh = async () => {
+    try {
+      console.log('🔄 Starting cache refresh...');
+      
+      // Clear all possible caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => {
+            console.log('🗑️ Deleting cache:', cacheName);
+            return caches.delete(cacheName);
+          })
+        );
+      }
+      
+      // Clear service worker cache and update
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          console.log('🔄 Updating service worker...');
+          await registration.update();
+          
+          // Force reload if new worker is available
+          if (registration.waiting) {
+            registration.waiting.postMessage({ action: 'skipWaiting' });
+          }
+        }
+      }
+      
+      // Clear localStorage and sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      console.log('✅ Cache refresh complete, reloading...');
+      
+      // Force refresh with cache bypass
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('❌ Cache refresh failed:', error);
+      // Fallback: simple reload
+      window.location.reload();
+    }
+  };
+
   const loadOriginalLotto = () => {
     console.log('🔄 loadOriginalLotto called');
     
@@ -349,68 +394,81 @@ export default function LottoEnhanced() {
       `}</style>
 
       {menuOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '60px',
-          right: '20px',
-          background: 'rgba(15, 15, 15, 0.95)',
-          outline: '10px solid rgba(80, 80, 80, 0.25)',
-          borderRadius: '16px',
-          padding: '20px',
-          zIndex: 999,
-          width: '250px',
-        }}>
-          <div style={{ color: 'rgb(188, 188, 188)', marginBottom: '15px', fontSize: '14px' }}>
+        <div className="hamburger-menu-container">
+          <div className="hamburger-menu-email">
             {user?.email}
           </div>
           
-          <div style={{ borderTop: '1px solid rgba(58, 58, 58, 0.3)', paddingTop: '15px' }}>
+          <div className="hamburger-menu-divider">
             {user?.email === 'demo@example.com' ? (
               <>
-                <button onClick={() => router.push('/login')} style={{
-                  width: '100%', background: 'rgba(24, 24, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.3)',
-                  color: '#ffffff', padding: '12px 0', cursor: 'pointer', marginBottom: '10px', borderRadius: '6px',
-                  fontSize: '14px', fontWeight: '500', transition: 'all 0.3s ease', boxSizing: 'border-box'
-                }}>Login</button>
-                <button onClick={() => router.push('/signup')} style={{
-                  width: '100%', background: 'rgba(24, 24, 24, 0.8)', border: '1px solid rgba(255, 255, 255, 0.3)',
-                  color: '#ffffff', padding: '12px 0', cursor: 'pointer', borderRadius: '6px',
-                  fontSize: '14px', fontWeight: '600', transition: 'all 0.3s ease', boxSizing: 'border-box'
-                }}>Sign Up</button>
+                <button 
+                  onClick={() => router.push('/login')} 
+                  className="hamburger-menu-button hamburger-menu-button--auth"
+                >
+                  Login
+                </button>
+                <button 
+                  onClick={() => router.push('/signup')} 
+                  className="hamburger-menu-button hamburger-menu-button--auth"
+                >
+                  Sign Up
+                </button>
               </>
             ) : (
               <>
-                <button onClick={() => router.push('/dashboard')} style={{
-                  width: '100%', background: 'none', border: '1px solid #cf0', color: '#cf0',
-                  padding: '10px', cursor: 'pointer', marginBottom: '10px', transition: 'all 0.3s'
-                }}>Dashboard</button>
-                <button onClick={() => supabase.auth.signOut()} style={{
-                  width: '100%', background: 'none', border: '1px solid #cf0', color: '#cf0',
-                  padding: '10px', cursor: 'pointer', transition: 'all 0.3s'
-                }}>Sign Out</button>
+                <button 
+                  onClick={() => router.push('/dashboard')} 
+                  className="hamburger-menu-button hamburger-menu-button--dashboard"
+                >
+                  Dashboard
+                </button>
+                <button 
+                  onClick={() => supabase.auth.signOut()} 
+                  className="hamburger-menu-button hamburger-menu-button--dashboard"
+                >
+                  Sign Out
+                </button>
               </>
             )}
             
-            <button onClick={() => router.push('/pwa-test/analytics')} style={{
-              width: '100%', background: 'rgba(25, 118, 210, 0.8)', border: '1px solid rgba(25, 118, 210, 0.5)',
-              color: '#ffffff', padding: '12px 0', cursor: 'pointer', marginTop: '10px', borderRadius: '6px',
-              fontSize: '14px', fontWeight: '500', transition: 'all 0.3s ease', boxSizing: 'border-box'
-            }}>📊 View Number Analytics</button>
+            <button 
+              onClick={() => router.push('/pwa-test/analytics')} 
+              className="hamburger-menu-button hamburger-menu-button--analytics"
+            >
+              📊 View Number Analytics
+            </button>
 
-            <button onClick={() => router.push('/game')} style={{
-              width: '100%', background: 'rgba(126, 104, 207, 0.8)', border: '1px solid rgba(126, 104, 207, 0.5)',
-              color: '#ffffff', padding: '12px 0', cursor: 'pointer', marginTop: '10px', borderRadius: '6px',
-              fontSize: '14px', fontWeight: '500', transition: 'all 0.3s ease', boxSizing: 'border-box'
-            }}>🎮 Play Game</button>
+            <button 
+              onClick={() => router.push('/game')} 
+              className="hamburger-menu-button hamburger-menu-button--game"
+            >
+              🎮 Play Game
+            </button>
             
-            <div style={{
-              marginTop: '15px', paddingTop: '15px', borderTop: '1px solid rgba(58, 58, 58, 0.3)',
-              fontSize: '11px', color: 'rgba(188, 188, 188, 0.8)', textAlign: 'center'
-            }}>
-              <div style={{ marginBottom: '4px' }}>
-                Build: <span style={{ fontFamily: 'monospace', color: '#CCFF00' }}>{gitInfo.commit}</span>
+            <div className="hamburger-menu-footer">
+              <div style={{ marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+                <button
+                  onClick={handleCacheRefresh}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '4px',
+                    marginRight: '8px'
+                  }}
+                  title="Clear cache and refresh"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#CCFF00">
+                    <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+                  </svg>
+                </button>
+                <span>
+                  Build: <span style={{ fontFamily: 'monospace', color: '#CCFF00' }}>{gitInfo.commit}</span>
+                </span>
               </div>
-              <div>
+              <div style={{ paddingLeft: '32px' }}>
                 Branch: <span style={{ fontFamily: 'monospace', color: '#CCFF00' }}>{gitInfo.branch}</span>
               </div>
             </div>

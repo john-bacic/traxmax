@@ -24,3 +24,96 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Hamburger Menu Styles */
+.hamburger-menu-container {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  background: rgba(15, 15, 15, 0.95);
+  outline: 10px solid rgba(80, 80, 80, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  z-index: 999;
+  width: 250px;
+}
+
+.hamburger-menu-email {
+  color: rgb(188, 188, 188);
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.hamburger-menu-divider {
+  border-top: 1px solid rgba(58, 58, 58, 0.3);
+  padding-top: 15px;
+}
+
+.hamburger-menu-button {
+  width: 100%;
+  min-width: 100%;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  padding: 12px 0;
+  border: none;
+  outline: none;
+}
+
+.hamburger-menu-button + .hamburger-menu-button {
+  margin-top: 10px;
+}
+
+.hamburger-menu-button--auth {
+  background: rgba(24, 24, 24, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.hamburger-menu-button--auth:hover {
+  background: rgba(34, 34, 34, 0.9);
+}
+
+.hamburger-menu-button--dashboard {
+  background: none;
+  border: 1px solid #cf0;
+  color: #cf0;
+  padding: 10px;
+}
+
+.hamburger-menu-button--dashboard:hover {
+  background: rgba(204, 255, 0, 0.1);
+}
+
+.hamburger-menu-button--analytics {
+  background: rgba(25, 118, 210, 0.8);
+  border: 1px solid rgba(25, 118, 210, 0.5);
+  color: #ffffff;
+}
+
+.hamburger-menu-button--analytics:hover {
+  background: rgba(25, 118, 210, 0.9);
+}
+
+.hamburger-menu-button--game {
+  background: rgba(126, 104, 207, 0.8);
+  border: 1px solid rgba(126, 104, 207, 0.5);
+  color: #ffffff;
+}
+
+.hamburger-menu-button--game:hover {
+  background: rgba(126, 104, 207, 0.9);
+}
+
+.hamburger-menu-footer {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(58, 58, 58, 0.3);
+  font-size: 11px;
+  color: rgba(188, 188, 188, 0.8);
+  text-align: center;
+}

@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { getNumberAnalytics, type NumberAnalytics } from '../../../lib/supabase/saved-combinations-service';
+import { getNumberAnalytics, getTotalSavedCombinations, getTotalUsers, type NumberAnalytics } from '../../../lib/supabase/saved-combinations-service';
 
 export default function LottoAnalytics() {
   const [analytics, setAnalytics] = useState<NumberAnalytics[]>([]);
+  const [combinationCounts, setCombinationCounts] = useState<{total: number, complete: number, incomplete: number}>({total: 0, complete: 0, incomplete: 0});
+  const [totalUsers, setTotalUsers] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,8 +15,30 @@ export default function LottoAnalytics() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      const data = await getNumberAnalytics();
-      setAnalytics(data);
+      
+      // Load analytics, combination counts, and user count in parallel
+      const [analyticsData, countsData, userCountData] = await Promise.all([
+        getNumberAnalytics(),
+        getTotalSavedCombinations(),
+        getTotalUsers()
+      ]);
+      
+      // Add 0% frequency numbers (numbers 1-50 that aren't in the data)
+      const existingNumbers = new Set(analyticsData.map(item => item.number));
+      const allNumbers = Array.from({ length: 50 }, (_, i) => i + 1);
+      const zeroFrequencyNumbers = allNumbers.filter(num => !existingNumbers.has(num));
+      
+      // Add 0% numbers to the analytics data
+      const zeroFreqItems = zeroFrequencyNumbers.map(number => ({
+        number,
+        frequency: 0,
+        percentage: 0.0
+      }));
+      
+      const fullAnalytics = [...analyticsData, ...zeroFreqItems];
+      setAnalytics(fullAnalytics);
+      setCombinationCounts(countsData);
+      setTotalUsers(userCountData);
     } catch (error) {
       console.error('Error loading analytics:', error);
     } finally {
@@ -22,166 +46,184 @@ export default function LottoAnalytics() {
     }
   };
 
-  const getBarWidth = (percentage: number) => {
-    const maxPercentage = analytics[0]?.percentage || 0;
-    return (percentage / maxPercentage) * 100;
-  };
-
   return (
     <div className="analytics-page">
       <style jsx global>{`
-        :root {
-          --primary-blue: #1976d2;
-          --dark-blue: rgb(6, 61, 124);
-          --light-blue: #bbdefb;
-          --white: white;
-          --text-dark: #333;
-          --text-light: #666;
-          --light-gray: #f5f5f5;
+        body {
+          font-family: 'Lexend', sans-serif;
+          background-color: rgb(8, 8, 8);
+          margin: 0;
+          padding: 0;
+          color: #7e68cf;
+          min-height: 100vh;
         }
 
         .analytics-page {
           min-height: 100vh;
-          background: linear-gradient(180deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+          background-color: rgb(8, 8, 8);
           padding: 20px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          color: var(--white);
-        }
-        
-        .analytics-card {
-          background: var(--white);
-          border-radius: 20px;
-          padding: 30px;
-          margin: 20px auto;
-          max-width: 800px;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-          color: var(--text-dark);
+          font-family: 'Lexend', sans-serif;
+          color: #7e68cf;
         }
 
-        .analytics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 20px;
-          margin-top: 30px;
-        }
-
-        .number-bar {
+        /* TOP NAV similar to lotto pages */
+        .topNav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background-color: rgba(8, 8, 8, 0.85);
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
           display: flex;
+          flex-direction: row;
           align-items: center;
-          gap: 15px;
-          padding: 10px;
-          background: var(--light-gray);
+          justify-content: space-between;
+          width: 100%;
+          padding: 0.5rem .75rem;
+          z-index: 100;
+          transition: transform 0.3s ease-in-out;
+        }
+
+        .back-button {
+          background-color: #242424;
+          color: #7e68cf;
           border-radius: 8px;
-          margin: 5px 0;
-        }
-
-        .number-circle {
-          width: 40px;
-          height: 40px;
-          background: var(--primary-blue);
-          color: var(--white);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-size: 0.875em;
+          font-family: 'Lexend', sans-serif;
           font-weight: 700;
-          flex-shrink: 0;
+          padding: 8px 16px;
+          border: none;
+          text-shadow: 0px 5px 8px rgba(0, 0, 0, 0.5);
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          transition: background-color 0.3s ease;
         }
 
-        .bar-container {
-          flex: 1;
-          height: 20px;
-          background: #e0e0e0;
-          border-radius: 10px;
-          overflow: hidden;
+        .back-button:hover {
+          background-color: #333;
         }
 
-        .bar-fill {
-          height: 100%;
-          background: linear-gradient(90deg, var(--primary-blue), var(--light-blue));
-          border-radius: 10px;
-          transition: width 0.3s ease;
+        .analytics-title {
+          color: #c2b2ff;
+          font-family: 'Lexend', sans-serif;
+          font-weight: 700;
+          font-size: 1.5em;
+          margin: 0;
         }
 
-        .percentage {
-          min-width: 60px;
-          text-align: right;
-          font-weight: 600;
-          color: var(--text-dark);
+        /* Main content container */
+        .analytics-container {
+          margin-top: 80px;
+          padding: 20px;
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+                 .frequency-header {
+           color: #c2b2ff;
+           font-family: 'Lexend', sans-serif;
+           font-weight: 700;
+           font-size: 1.25em;
+           margin: 0 0 20px 0;
+           text-align: left;
+           text-shadow: 0px 5px 8px rgba(0, 0, 0, 0.5);
+         }
+
+         .total-saved {
+           color: #7e68cf;
+           font-family: 'Lexend', sans-serif;
+           font-weight: 400;
+           font-size: 0.9em;
+           margin: 0 0 20px 0;
+           text-align: left;
+           opacity: 0.8;
+         }
+
+        /* Frequency list styling to match the image */
+        .frequency-list {
+          font-family: 'Lexend', sans-serif;
+          font-weight: 700;
+          font-variant-numeric: tabular-nums;
+          line-height: 1.6;
+          margin: 0;
+          padding: 0;
+        }
+
+                 .frequency-item {
+           display: flex;
+           align-items: flex-start;
+           margin: 8px 0;
+           font-size: 1rem;
+         }
+
+        .frequency-number {
+          color: #c2b2ff;
+          font-weight: 700;
+          margin-right: 8px;
+        }
+
+        .frequency-colon {
+          color: #c2b2ff;
+          margin-right: 8px;
+        }
+
+                 .frequency-percentage {
+           color: #7e68cf;
+           font-weight: 700;
+           min-width: 50px;
+         }
+
+        .frequency-numbers {
+          color: #7e68cf;
+          margin-left: 8px;
+          font-weight: 400;
+        }
+
+        .frequency-separator {
+          color: #7e68cf;
+          margin: 0 4px;
         }
 
         .loading {
           text-align: center;
-          padding: 50px;
-          color: var(--text-light);
+          padding: 100px 20px;
+          color: rgba(126, 104, 207, 0.8);
+          font-size: 1.1em;
         }
 
-        .back-link {
-          display: inline-block;
-          padding: 12px 24px;
-          background: var(--white);
-          color: var(--primary-blue);
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: 600;
-          border: 2px solid var(--primary-blue);
-          margin-bottom: 20px;
-        }
-
-        .stats-summary {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 20px;
-          margin: 20px 0;
-        }
-
-        .stat-card {
-          background: var(--light-gray);
-          padding: 20px;
-          border-radius: 12px;
-          text-align: center;
-        }
-
-        .stat-value {
-          font-size: 32px;
-          font-weight: 700;
-          color: var(--primary-blue);
-        }
-
-        .stat-label {
-          font-size: 14px;
-          color: var(--text-light);
-          margin-top: 5px;
-        }
-
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-          .analytics-grid {
-            grid-template-columns: 1fr;
+          .analytics-container {
+            padding: 15px;
           }
           
-          .stats-summary {
-            grid-template-columns: repeat(2, 1fr);
+          .frequency-item {
+            font-size: 0.9rem;
           }
         }
       `}</style>
 
-      <div className="analytics-card">
-                 <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginBottom: '20px' }}>
-           <a href="/lotto-enhanced" className="back-link">
-             ← Back to Lotto Enhanced
-           </a>
-           <a href="/pwa-test/offline-lotto" className="back-link">
-             🎯 Offline Lotto
-           </a>
-         </div>
+      {/* TOP NAV */}
+      <div className="topNav">
+        <a href="/lotto-enhanced" className="back-button">
+          ← Back to Lotto
+        </a>
         
-        <h1 style={{ textAlign: 'center', margin: '20px 0' }}>
-          📊 Number Analytics
-        </h1>
+        <h1 className="analytics-title">📊 Analytics</h1>
         
-        <p style={{ textAlign: 'center', color: 'var(--text-light)', marginBottom: 30 }}>
-          See which numbers are most popular among all users
-        </p>
+        <a href="/pwa-test/offline-lotto" className="back-button">
+          🎯 Offline
+        </a>
+      </div>
+
+      {/* Main Content */}
+      <div className="analytics-container">
+        
+        <div className="frequency-header">number frequency</div>
 
         {loading ? (
           <div className="loading">Loading analytics...</div>
@@ -189,60 +231,45 @@ export default function LottoAnalytics() {
           <div className="loading">No data available yet. Save some combinations to see analytics!</div>
         ) : (
           <>
-            <div className="stats-summary">
-              <div className="stat-card">
-                <div className="stat-value">{analytics.length}</div>
-                <div className="stat-label">Numbers with Data</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{analytics[0]?.frequency || 0}</div>
-                <div className="stat-label">Most Popular Count</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{analytics[0]?.number || '-'}</div>
-                <div className="stat-label">Most Popular Number</div>
-              </div>
-              <div className="stat-card">
-                <div className="stat-value">{analytics[0]?.percentage || 0}%</div>
-                <div className="stat-label">Top Percentage</div>
-              </div>
+            <div className="total-saved">
+              <div>total saved: {analytics.reduce((sum, item) => sum + item.frequency, 0)} numbers</div>
+              <div>{totalUsers} unique users</div>
+              <div>{combinationCounts.complete} complete rows</div>
+              {combinationCounts.incomplete > 0 && (
+                <div>{combinationCounts.incomplete} incomplete rows</div>
+              )}
             </div>
-
-            <h3 style={{ marginTop: 40, marginBottom: 20 }}>Number Frequency (1-50)</h3>
-            
-            <div className="analytics-grid">
-              <div>
-                <h4>Most Popular (1-25)</h4>
-                {analytics.filter(item => item.number <= 25).map(item => (
-                  <div key={item.number} className="number-bar">
-                    <div className="number-circle">{item.number}</div>
-                    <div className="bar-container">
-                      <div 
-                        className="bar-fill" 
-                        style={{ width: `${getBarWidth(item.percentage)}%` }}
-                      />
-                    </div>
-                    <div className="percentage">{item.percentage}%</div>
-                  </div>
-                ))}
-              </div>
+          <div className="frequency-list">
+            {analytics.map(item => {
+              // Group numbers by frequency
+              const sameFrequency = analytics.filter(a => a.frequency === item.frequency);
+              const isFirst = analytics.findIndex(a => a.frequency === item.frequency) === analytics.indexOf(item);
               
-              <div>
-                <h4>Most Popular (26-50)</h4>
-                {analytics.filter(item => item.number > 25).map(item => (
-                  <div key={item.number} className="number-bar">
-                    <div className="number-circle">{item.number}</div>
-                    <div className="bar-container">
-                      <div 
-                        className="bar-fill" 
-                        style={{ width: `${getBarWidth(item.percentage)}%` }}
-                      />
-                    </div>
-                    <div className="percentage">{item.percentage}%</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              if (!isFirst) return null; // Only show first occurrence of each frequency
+              
+              // Use the percentage already calculated by the analytics service
+              const percentage = item.percentage.toFixed(1);
+              const isZeroFreq = item.frequency === 0;
+              
+              return (
+                <div key={item.frequency} className="frequency-item">
+                  <span className="frequency-number">{item.frequency}x</span>
+                  <span className="frequency-colon">:</span>
+                  <span className="frequency-percentage" style={{ color: isZeroFreq ? '#ff69b4' : '#c2b2ff' }}>{percentage}%</span>
+                                      <span className="frequency-numbers">
+                      {sameFrequency.map((num, index) => (
+                        <span key={num.number} style={{ color: isZeroFreq ? '#ff69b4' : '#7e68cf' }}>
+                          {num.number}
+                          {index < sameFrequency.length - 1 && (
+                            <span className="frequency-separator" style={{ color: isZeroFreq ? '#ff69b4' : '#7e68cf' }}> • </span>
+                          )}
+                        </span>
+                      ))}
+                    </span>
+                </div>
+              );
+            })}
+          </div>
           </>
         )}
       </div>

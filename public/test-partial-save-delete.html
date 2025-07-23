@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Partial Save & Delete</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: #fff; 
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .log { 
+            background: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button { 
+            background: #cf0; 
+            color: #000; 
+            border: none; 
+            padding: 12px 24px; 
+            margin: 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        .numbers-display {
+            background: #333;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Partial Save & Delete</h1>
+        
+        <div>
+            <button onclick="testSave1()">💾 Save 1 Number</button>
+            <button onclick="testSave3()">💾 Save 3 Numbers</button>
+            <button onclick="testSave7()">💾 Save 7 Numbers</button>
+            <button onclick="loadAll()">📥 Load All</button>
+            <button onclick="testDelete()">🗑️ Delete Last</button>
+            <button onclick="clearLog()">🧹 Clear Log</button>
+        </div>
+        
+        <div class="numbers-display" id="saved-numbers">
+            <strong>Saved Numbers:</strong> <span id="numbers-list">Loading...</span>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <!-- Load Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        // Setup
+        const SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+        
+        window.SUPABASE_URL = SUPABASE_URL;
+        window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+        
+        let dataManager = null;
+        let savedNumbers = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const color = type === 'success' ? '#4CAF50' : 
+                         type === 'error' ? '#f44336' : 
+                         type === 'warning' ? '#ff9800' : '#fff';
+            
+            logElement.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateNumbersDisplay() {
+            const numbersList = document.getElementById('numbers-list');
+            if (savedNumbers.length === 0) {
+                numbersList.textContent = 'None saved yet';
+            } else {
+                numbersList.innerHTML = savedNumbers.map((nums, index) => 
+                    `<div style="margin: 5px 0;">${index + 1}. [${nums.join(', ')}] (${nums.length} numbers)</div>`
+                ).join('');
+            }
+        }
+        
+        async function initDataManager() {
+            if (window.lottoDataManager) {
+                dataManager = window.lottoDataManager;
+                return;
+            }
+            
+            // Load data manager if not already loaded
+            const script = document.createElement('script');
+            script.src = '/lib/supabase/data-manager.js?t=' + Date.now();
+            script.type = 'module';
+            
+            return new Promise((resolve, reject) => {
+                script.onload = () => {
+                    dataManager = window.lottoDataManager;
+                    log('✅ Data manager loaded', 'success');
+                    resolve();
+                };
+                script.onerror = () => {
+                    log('❌ Failed to load data manager', 'error');
+                    reject();
+                };
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function testSave1() {
+            await ensureDataManager();
+            const numbers = [Math.floor(Math.random() * 50) + 1];
+            log(`💾 Testing save with 1 number: [${numbers.join(', ')}]`);
+            
+            try {
+                const result = await dataManager.saveNumbers(numbers);
+                if (result.success) {
+                    log(`✅ Successfully saved 1 number!`, 'success');
+                    await loadAll();
+                } else {
+                    log(`❌ Save failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Save error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testSave3() {
+            await ensureDataManager();
+            const numbers = Array.from({length: 3}, () => Math.floor(Math.random() * 50) + 1)
+                .sort((a, b) => a - b);
+            log(`💾 Testing save with 3 numbers: [${numbers.join(', ')}]`);
+            
+            try {
+                const result = await dataManager.saveNumbers(numbers);
+                if (result.success) {
+                    log(`✅ Successfully saved 3 numbers!`, 'success');
+                    await loadAll();
+                } else {
+                    log(`❌ Save failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Save error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testSave7() {
+            await ensureDataManager();
+            const numbers = Array.from({length: 7}, () => Math.floor(Math.random() * 50) + 1)
+                .sort((a, b) => a - b);
+            log(`💾 Testing save with 7 numbers: [${numbers.join(', ')}]`);
+            
+            try {
+                const result = await dataManager.saveNumbers(numbers);
+                if (result.success) {
+                    log(`✅ Successfully saved 7 numbers!`, 'success');
+                    await loadAll();
+                } else {
+                    log(`❌ Save failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Save error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadAll() {
+            await ensureDataManager();
+            log('📥 Loading all saved numbers...');
+            
+            try {
+                savedNumbers = await dataManager.getAllNumbers();
+                log(`✅ Loaded ${savedNumbers.length} combinations`, 'success');
+                updateNumbersDisplay();
+            } catch (error) {
+                log(`❌ Load error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDelete() {
+            await ensureDataManager();
+            
+            if (savedNumbers.length === 0) {
+                log('⚠️ No numbers to delete', 'warning');
+                return;
+            }
+            
+            const toDelete = savedNumbers[savedNumbers.length - 1];
+            log(`🗑️ Testing delete: [${toDelete.join(', ')}]`);
+            
+            try {
+                const result = await dataManager.deleteNumbers(toDelete);
+                if (result.success) {
+                    log(`✅ Successfully deleted numbers!`, 'success');
+                    await loadAll();
+                } else {
+                    log(`❌ Delete failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Delete error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function ensureDataManager() {
+            if (!dataManager) {
+                await initDataManager();
+                // Wait a bit for initialization
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Initialize
+        window.addEventListener('load', async () => {
+            log('🚀 Test page initialized', 'info');
+            await initDataManager();
+            await loadAll();
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Authentication</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #1a1a1a; 
+            color: #fff; 
+        }
+        .log { 
+            background: #2a2a2a; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            max-height: 400px; 
+            overflow-y: auto; 
+            font-family: monospace;
+            font-size: 14px;
+        }
+        button { 
+            background: #cf0; 
+            color: #000; 
+            border: none; 
+            padding: 12px 24px; 
+            margin: 10px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Authentication Debug</h1>
+    
+    <div>
+        <button onclick="testAuth()">Test Authentication</button>
+        <button onclick="testAnonymous()">Test Anonymous Sign-In</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div class="log" id="log"></div>
+
+    <!-- Load Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        const SUPABASE_URL = 'https://slyscrmgrrjzzclbbdia.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNseXNjcm1ncnJqenpjbGJiZGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMzA5MTQsImV4cCI6MjA2NjcwNjkxNH0.5F3Jk0pesBHAwFaBpuZuSucbecRvniFokkmMICWPfQc';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('log');
+            const color = type === 'success' ? '#4CAF50' : 
+                         type === 'error' ? '#f44336' : 
+                         type === 'warning' ? '#ff9800' : '#fff';
+            
+            logElement.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        async function testAuth() {
+            log('🔐 Testing basic authentication...', 'info');
+            
+            try {
+                // Check current session
+                const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError) {
+                    log(`❌ Session error: ${sessionError.message}`, 'error');
+                    return;
+                }
+                
+                if (sessionData.session) {
+                    log(`✅ Active session found: ${sessionData.session.user.id}`, 'success');
+                } else {
+                    log('ℹ️ No active session', 'warning');
+                }
+                
+                // Check current user
+                const { data: userData, error: userError } = await supabase.auth.getUser();
+                
+                if (userError) {
+                    log(`❌ User error: ${userError.message}`, 'error');
+                    return;
+                }
+                
+                if (userData.user) {
+                    log(`✅ Current user: ${userData.user.id}`, 'success');
+                } else {
+                    log('ℹ️ No current user', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ Auth test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAnonymous() {
+            log('📝 Testing anonymous sign-in...', 'info');
+            
+            try {
+                const { data, error } = await supabase.auth.signInAnonymously();
+                
+                if (error) {
+                    log(`❌ Anonymous sign-in failed: ${error.message}`, 'error');
+                    log(`🔍 Error code: ${error.code || 'unknown'}`, 'error');
+                    log(`🔍 Error details: ${JSON.stringify(error)}`, 'error');
+                    return;
+                }
+                
+                if (data.user) {
+                    log(`✅ Anonymous sign-in successful!`, 'success');
+                    log(`👤 User ID: ${data.user.id}`, 'success');
+                    log(`📧 Email: ${data.user.email || 'anonymous'}`, 'info');
+                    log(`🔗 Session: ${data.session ? 'Active' : 'None'}`, 'info');
+                } else {
+                    log('⚠️ Sign-in returned no user', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ Anonymous sign-in exception: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            log('🚀 Authentication Debug initialized', 'info');
+            setTimeout(() => testAuth(), 1000);
+        });
+    </script>
+</body>
+</html> 

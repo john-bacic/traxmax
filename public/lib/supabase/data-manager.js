@@ -44,11 +44,29 @@ class LottoDataManager {
       await this.syncFromSupabase()
     }
 
+    // Debug: Test Supabase connection
+    console.log('🧪 Testing Supabase connection...')
+    try {
+      const { data, error } = await this.supabase
+        .from('saved_combinations')
+        .select('count')
+        .limit(1)
+      if (error) {
+        console.error('❌ Supabase connection test failed:', error)
+      } else {
+        console.log('✅ Supabase connection test successful')
+      }
+    } catch (connError) {
+      console.error('❌ Supabase connection error:', connError)
+    }
+
     console.log('✅ LottoDataManager ready')
   }
 
   async authenticateUser() {
     try {
+      console.log('🔐 Starting authentication process...')
+
       // Try to get existing session
       const {
         data: { session },
@@ -56,22 +74,86 @@ class LottoDataManager {
 
       if (session?.user) {
         this.user = session.user
-        console.log('✅ User authenticated:', this.user.id)
+        console.log('✅ User authenticated (existing session):', this.user.id)
         return
       }
 
-      // Sign in anonymously
-      const {
-        data: { user },
-        error,
-      } = await this.supabase.auth.signInAnonymously()
+      console.log('📝 No existing session, creating anonymous user...')
 
-      if (error) throw error
+      // Sign in anonymously (check if method exists)
+      if (typeof this.supabase.auth.signInAnonymously === 'function') {
+        console.log('📝 Using signInAnonymously method...')
+        const {
+          data: { user },
+          error,
+        } = await this.supabase.auth.signInAnonymously()
 
-      this.user = user
-      console.log('✅ Anonymous user created:', this.user.id)
+        if (error) {
+          console.error('❌ Anonymous sign-in failed:', error)
+          throw error
+        }
+
+        this.user = user
+        console.log('✅ Anonymous user created successfully:', this.user.id)
+      } else {
+        console.log(
+          '📝 signInAnonymously not available, trying alternative auth...'
+        )
+
+        // Try using signInWithPassword with a demo account first
+        try {
+          console.log('🔑 Attempting demo account login...')
+          const { data: authData, error: authError } =
+            await this.supabase.auth.signInWithPassword({
+              email: 'demo@example.com',
+              password: 'demo123456',
+            })
+
+          if (!authError && authData.user) {
+            this.user = authData.user
+            console.log('✅ Demo account login successful:', this.user.id)
+            return
+          } else {
+            console.log(
+              '⚠️ Demo account login failed, trying guest approach...'
+            )
+          }
+        } catch (demoError) {
+          console.log('⚠️ Demo account not available, using guest approach...')
+        }
+
+        // Alternative: Create a guest user session or use different auth
+        // Generate a proper UUID for guest users
+        let guestUserId = localStorage.getItem('guest-user-id')
+
+        // Check if existing guest ID is in old format (starts with 'guest-')
+        if (!guestUserId || guestUserId.startsWith('guest-')) {
+          console.log('🔄 Generating new UUID format guest user...')
+
+          // Generate a UUID v4 format for compatibility
+          guestUserId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(
+            /[xy]/g,
+            function (c) {
+              const r = (Math.random() * 16) | 0
+              const v = c === 'x' ? r : (r & 0x3) | 0x8
+              return v.toString(16)
+            }
+          )
+          localStorage.setItem('guest-user-id', guestUserId)
+          console.log('✅ New UUID guest user created:', guestUserId)
+        }
+
+        this.user = {
+          id: guestUserId,
+          email: 'guest@demo.com',
+          guest: true,
+        }
+
+        console.log('✅ Guest user created:', this.user.id)
+      }
     } catch (error) {
       console.warn('⚠️ Auth failed, using offline mode:', error.message)
+      console.log('🔄 Setting user to offline mode with details:', error)
       this.user = { id: 'offline-user', offline: true }
     }
   }
@@ -98,21 +180,54 @@ class LottoDataManager {
   // Core data operations
   async saveNumbers(numbers) {
     console.log('💾 Saving numbers:', numbers)
+    console.log('🔍 Debug - isOnline:', this.isOnline)
+    console.log('🔍 Debug - user:', this.user)
+    console.log('🔍 Debug - user offline flag:', this.user?.offline)
 
     try {
       // Always save to localStorage first (immediate feedback)
       const sequences = this.getLocalSequences()
       sequences.push(numbers)
       localStorage.setItem('numberSequences', JSON.stringify(sequences))
+      console.log('✅ Saved to localStorage successfully')
 
       // Notify UI immediately
       this.notifyListeners('numbers_saved', { numbers, source: 'local' })
 
-      // Sync to Supabase if online
-      if (this.isOnline && this.user && !this.user.offline) {
-        await this.syncToSupabase('insert', numbers)
-        this.notifyListeners('sync_success', { action: 'save', numbers })
+      // Sync to Supabase if online and user is authenticated (including guest users)
+      if (
+        this.isOnline &&
+        this.user &&
+        !this.user.offline &&
+        (this.user.guest || this.user.id)
+      ) {
+        console.log('🚀 Attempting Supabase sync...')
+        console.log(
+          '🔍 User type:',
+          this.user.guest ? 'guest' : 'authenticated'
+        )
+
+        try {
+          await this.syncToSupabase('insert', numbers)
+          console.log('✅ Supabase sync completed successfully')
+          this.notifyListeners('sync_success', { action: 'save', numbers })
+        } catch (syncError) {
+          console.error('❌ Supabase sync failed:', syncError)
+          // Queue for later retry
+          this.syncQueue.push({
+            action: 'insert',
+            numbers,
+            timestamp: Date.now(),
+          })
+          this.notifyListeners('queued_for_sync', { action: 'save', numbers })
+        }
       } else {
+        console.log('⏸️ Queueing for later sync - reasons:')
+        console.log('   - isOnline:', this.isOnline)
+        console.log('   - user exists:', !!this.user)
+        console.log('   - user offline:', this.user?.offline)
+        console.log('   - user guest:', this.user?.guest)
+
         // Queue for later sync
         this.syncQueue.push({
           action: 'insert',
@@ -186,22 +301,76 @@ class LottoDataManager {
 
     try {
       if (action === 'insert') {
+        console.log('📤 Inserting to Supabase with user_id:', this.user.id)
+
+        // For guest users, try to insert without foreign key constraint
+        const insertData = {
+          user_id: this.user.guest ? null : this.user.id, // Use null for guest users
+          numbers: numbers,
+          name: `Combination ${Date.now()}`,
+        }
+
+        console.log('📤 Insert data:', insertData)
+
         const { error } = await this.supabase
           .from('saved_combinations')
-          .insert({
-            user_id: this.user.id,
-            numbers: numbers,
-            name: `Combination ${Date.now()}`,
-          })
+          .insert(insertData)
 
-        if (error) throw error
+        if (error) {
+          console.error('❌ Supabase insert error:', error)
+
+          // If foreign key error, try a different approach
+          if (error.code === '23503' && this.user.guest) {
+            console.log(
+              '🔄 Retrying with alternative approach for guest user...'
+            )
+
+            // Try inserting with a known system user or without user_id
+            const altInsertData = {
+              numbers: numbers,
+              name: `Guest Combination ${Date.now()}`,
+              // Don't include user_id for guest users
+            }
+
+            const { error: altError } = await this.supabase
+              .from('saved_combinations')
+              .insert(altInsertData)
+
+            if (altError) {
+              console.error('❌ Alternative insert also failed:', altError)
+              throw altError
+            } else {
+              console.log('✅ Alternative insert successful for guest user')
+              return
+            }
+          }
+
+          throw error
+        }
         console.log('✅ Synced to Supabase:', numbers)
       } else if (action === 'delete') {
+        console.log('🗑️ Deleting from Supabase:', numbers)
+
         // Find matching combination to delete
-        const { data: combinations } = await this.supabase
-          .from('saved_combinations')
-          .select('id, numbers')
-          .eq('user_id', this.user.id)
+        let combinations
+
+        if (this.user.guest) {
+          // For guest users, search without user_id constraint
+          const { data } = await this.supabase
+            .from('saved_combinations')
+            .select('id, numbers, user_id')
+            .is('user_id', null) // Search for records with null user_id
+
+          combinations = data
+        } else {
+          // For authenticated users, search by user_id
+          const { data } = await this.supabase
+            .from('saved_combinations')
+            .select('id, numbers')
+            .eq('user_id', this.user.id)
+
+          combinations = data
+        }
 
         const matching = combinations?.find(
           (combo) =>
@@ -210,13 +379,20 @@ class LottoDataManager {
         )
 
         if (matching) {
+          console.log('🎯 Found matching combination to delete:', matching.id)
+
           const { error } = await this.supabase
             .from('saved_combinations')
             .delete()
             .eq('id', matching.id)
 
-          if (error) throw error
+          if (error) {
+            console.error('❌ Delete error:', error)
+            throw error
+          }
           console.log('✅ Deleted from Supabase:', numbers)
+        } else {
+          console.log('⚠️ No matching combination found to delete')
         }
       }
     } catch (error) {
@@ -321,6 +497,9 @@ class LottoDataManager {
     }
   }
 }
+
+// Export the class and create global instance
+export { LottoDataManager }
 
 // Create global instance
 window.lottoDataManager = new LottoDataManager()

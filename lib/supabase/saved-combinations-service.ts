@@ -104,6 +104,88 @@ export const getNumberAnalytics = async (): Promise<NumberAnalytics[]> => {
   }
 };
 
+// Get total count of saved combination rows
+export const getTotalSavedCombinations = async (): Promise<{total: number, complete: number, incomplete: number}> => {
+  try {
+    const { data, error } = await supabase
+      .from('saved_combinations')
+      .select('numbers');
+      
+    if (error) throw error;
+    
+    const combinations = data || [];
+    const total = combinations.length;
+    
+    // Count complete (7 numbers) vs incomplete (less than 7 numbers) rows
+    const complete = combinations.filter(combo => combo.numbers.length === 7).length;
+    const incomplete = combinations.filter(combo => combo.numbers.length < 7).length;
+    
+    // Debug logging to see what's in the database
+    console.log('🔍 Combination lengths breakdown:');
+    const lengthCounts: {[key: number]: number} = {};
+    combinations.forEach(combo => {
+      const len = combo.numbers.length;
+      lengthCounts[len] = (lengthCounts[len] || 0) + 1;
+    });
+    console.log(lengthCounts);
+    console.log(`📊 Total: ${total}, Complete (7): ${complete}, Incomplete (<7): ${incomplete}`);
+    
+    return { total, complete, incomplete };
+  } catch (error) {
+    console.error('Error fetching combination counts:', error);
+    return { total: 0, complete: 0, incomplete: 0 };
+  }
+};
+
+// Get total count of unique users who have saved combinations
+export const getTotalUsers = async (): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('saved_combinations')
+      .select('user_id, created_at');
+      
+    if (error) throw error;
+    
+    console.log('🔍 Raw user data from database:', data?.slice(0, 10)); // Show first 10 rows
+    
+    // Create user tracking strategy:
+    // 1. Count all unique non-null user_ids as separate users
+    // 2. Count all null user_ids as representing "guest users"
+    // 3. Estimate guest users by grouping null entries by day (assumes 1 guest per day max)
+    
+    const authenticatedUsers = new Set();
+    const nullUserEntries: string[] = [];
+    
+    data?.forEach(row => {
+      if (row.user_id && row.user_id.trim() !== '') {
+        authenticatedUsers.add(row.user_id);
+      } else {
+        // For null users, group by date to estimate unique guests
+        const date = new Date(row.created_at).toISOString().split('T')[0];
+        nullUserEntries.push(date);
+      }
+    });
+    
+    // Estimate unique guest users by unique dates (conservative estimate)
+    const uniqueGuestDays = new Set(nullUserEntries);
+    const estimatedGuestUsers = Math.max(uniqueGuestDays.size, nullUserEntries.length > 0 ? 1 : 0);
+    
+    const totalUsers = authenticatedUsers.size + estimatedGuestUsers;
+    
+    console.log('👥 Authenticated users:', authenticatedUsers.size);
+    console.log('👥 Estimated guest users:', estimatedGuestUsers);
+    console.log('👥 Total estimated users:', totalUsers);
+    console.log('📊 Total rows in database:', data?.length || 0);
+    console.log('🔍 Sample authenticated user IDs:', Array.from(authenticatedUsers).slice(0, 3));
+    console.log('🔍 Null user entry dates:', Array.from(uniqueGuestDays).slice(0, 5));
+    
+    return totalUsers;
+  } catch (error) {
+    console.error('Error fetching user count:', error);
+    return 0;
+  }
+};
+
 // Sync local storage to Supabase (for migration) - ONLY real numberSequences
 export const syncLocalToSupabase = async () => {
   try {
